@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from typing import Optional
 
 
 @dataclass(frozen=True)
 class Settings:
-    openai_api_key: str | None
+    openai_api_key: Optional[str]
     openai_base_url: str
     openai_audio_model: str
     openai_summary_model: str

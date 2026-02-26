@@ -3,6 +3,7 @@ from __future__ import annotations
 from html.parser import HTMLParser
 import json
 import re
+from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 import httpx
@@ -25,7 +26,9 @@ class _AudioMetaParser(HTMLParser):
         self.meta: list[tuple[str, str]] = []
         self.audio_srcs: list[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+    def handle_starttag(
+        self, tag: str, attrs: list[tuple[str, Optional[str]]]
+    ) -> None:
         attr_map = {key.lower(): value for key, value in attrs if key}
         if tag.lower() == "meta":
             key = (attr_map.get("property") or attr_map.get("name") or "").lower()
@@ -38,7 +41,7 @@ class _AudioMetaParser(HTMLParser):
                 self.audio_srcs.append(src)
 
 
-def _extract_audio_url(html: str) -> str | None:
+def _extract_audio_url(html: str) -> Optional[str]:
     parser = _AudioMetaParser()
     parser.feed(html)
 
@@ -69,7 +72,7 @@ def _extract_audio_url(html: str) -> str | None:
     return None
 
 
-def _extract_audio_from_next_data(html: str) -> str | None:
+def _extract_audio_from_next_data(html: str) -> Optional[str]:
     match = re.search(
         r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>',
         html,
@@ -98,7 +101,7 @@ def _looks_like_audio_url(value: str) -> bool:
     return False
 
 
-def _find_audio_in_json(node: object) -> str | None:
+def _find_audio_in_json(node: object) -> Optional[str]:
     if isinstance(node, dict):
         preferred_keys = ("audio", "enclosure", "media", "stream", "source")
         for key in preferred_keys:
