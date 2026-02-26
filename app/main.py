@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI, HTTPException
 
 from app.config import get_settings
 from app.schemas import SummarizeRequest, SummarizeResponse
-from app.services.download import download_audio
 from app.services.resolve import resolve_audio_url
 from app.services.summarize import summarize_text
 from app.services.transcribe import transcribe_audio
@@ -30,17 +27,8 @@ async def summarize(request: SummarizeRequest) -> SummarizeResponse:
 
     try:
         audio_url = await resolve_audio_url(str(request.url), settings)
-        audio_path, _ = await download_audio(audio_url, settings)
-        try:
-            transcript = await transcribe_audio(audio_path, settings)
-            summary = await summarize_text(
-                transcript, settings, language, style, max_words
-            )
-        finally:
-            try:
-                os.remove(audio_path)
-            except OSError:
-                pass
+        transcript = await transcribe_audio(audio_url, settings)
+        summary = await summarize_text(transcript, settings, language, style, max_words)
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 

@@ -9,8 +9,12 @@ from typing import Optional
 class Settings:
     openai_api_key: Optional[str]
     openai_base_url: str
-    openai_audio_model: str
     openai_summary_model: str
+    dashscope_api_key: Optional[str]
+    dashscope_base_url: str
+    dashscope_asr_model: str
+    dashscope_poll_interval_s: float
+    dashscope_poll_timeout_s: float
     http_timeout_s: float
     max_audio_bytes: int
     chunk_chars: int
@@ -46,8 +50,14 @@ def get_settings() -> Settings:
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip(
             "/"
         ),
-        openai_audio_model=os.getenv("OPENAI_AUDIO_MODEL", "whisper-1"),
         openai_summary_model=os.getenv("OPENAI_SUMMARY_MODEL", "gpt-4o-mini"),
+        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+        dashscope_base_url=os.getenv(
+            "DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"
+        ).rstrip("/"),
+        dashscope_asr_model=os.getenv("DASHSCOPE_ASR_MODEL", "fun-asr"),
+        dashscope_poll_interval_s=_getenv_float("DASHSCOPE_POLL_INTERVAL_S", 2.0),
+        dashscope_poll_timeout_s=_getenv_float("DASHSCOPE_POLL_TIMEOUT_S", 900.0),
         http_timeout_s=_getenv_float("HTTP_TIMEOUT_S", 120.0),
         max_audio_bytes=_getenv_int("MAX_AUDIO_BYTES", 200 * 1024 * 1024),
         chunk_chars=_getenv_int("SUMMARY_CHUNK_CHARS", 6000),

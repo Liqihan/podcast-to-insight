@@ -1,42 +1,82 @@
 from __future__ import annotations
 
-import os
+import asyncio
+from http import HTTPStatus
+import time
+from typing import Any, Optional
 
-import httpx
+import dashscope
+from dashscope.audio.asr import Transcription
 
 from app.config import Settings
 from app.utils.errors import ServiceError
 
 
-async def transcribe_audio(file_path: str, settings: Settings) -> str:
-    if not settings.openai_api_key:
-        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
+def _extract_transcript(output: Any) -> Optional[str]:
+    if isinstance(output, dict):
+        if isinstance(output.get("transcription"), str):
+            return output["transcription"]
+        if isinstance(output.get("text"), str):
+            return output["text"]
+        results = output.get("results")
+        if isinstance(results, list):
+            texts: list[str] = []
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
+                if isinstance(item.get("transcription"), str):
+                    texts.append(item["transcription"])
+                    continue
+                if isinstance(item.get("text"), str):
+                    texts.append(item["text"])
+                    continue
+                sentences = item.get("sentences")
+                if isinstance(sentences, list):
+                    sentence_texts = [
+                        s.get("text")
+                        for s in sentences
+                        if isinstance(s, dict) and isinstance(s.get("text"), str)
+                    ]
+                    if sentence_texts:
+                        texts.append(" ".join(sentence_texts))
+            if texts:
+                return "\n".join(texts)
+    return None
 
-    url = f"{settings.openai_base_url}/audio/transcriptions"
-    headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
-    data = {"model": settings.openai_audio_model, "response_format": "text"}
 
-    try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout_s) as client:
-            with open(file_path, "rb") as handle:
-                files = {
-                    "file": (
-                        os.path.basename(file_path),
-                        handle,
-                        "application/octet-stream",
-                    )
-                }
-                response = await client.post(url, headers=headers, data=data, files=files)
-    except httpx.RequestError as exc:
-        raise ServiceError(f"Transcription request failed: {exc}", status_code=502) from exc
+def _transcribe_sync(audio_url: str, settings: Settings) -> str:
+    if not settings.dashscope_api_key:
+        raise ServiceError("DASHSCOPE_API_KEY is not set", status_code=501)
 
-    if response.status_code >= 400:
+    dashscope.base_http_api_url = settings.dashscope_base_url
+    dashscope.api_key = settings.dashscope_api_key
+
+    response = Transcription.async_call(
+        model=settings.dashscope_asr_model, file_urls=[audio_url]
+    )
+    start = time.time()
+
+    while True:
+        status = response.output.task_status
+        if status in ("SUCCEEDED", "FAILED"):
+            break
+        if time.time() - start > settings.dashscope_poll_timeout_s:
+            raise ServiceError("Transcription timed out", status_code=504)
+        time.sleep(settings.dashscope_poll_interval_s)
+        response = Transcription.fetch(task=response.output.task_id)
+
+    if response.status_code != HTTPStatus.OK:
         raise ServiceError(
-            f"Transcription failed: {response.status_code} {response.text}",
+            f"Transcription failed: {response.code} {response.message}",
             status_code=502,
         )
 
-    transcript = response.text.strip()
+    output = response.output
+    transcript = _extract_transcript(output)
     if not transcript:
         raise ServiceError("Empty transcription result", status_code=502)
-    return transcript
+    return transcript.strip()
+
+
+async def transcribe_audio(audio_url: str, settings: Settings) -> str:
+    return await asyncio.to_thread(_transcribe_sync, audio_url, settings)
