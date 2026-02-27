@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.config import Settings
-from app.services.download import download_audio
+from app.services.download import convert_audio_to_mp3, download_audio
 from app.services.embedding import embed_texts
 from app.services.resolve import resolve_episode_metadata
 from app.services.storage import upload_bytes, upload_file
@@ -81,9 +81,20 @@ async def run_pipeline(
     local_path = None
     try:
         local_path, _ = await download_audio(metadata.audio_url, settings)
-        storage_path = f"episodes/{episode_id}/audio{metadata.audio_suffix}"
+        converted_path = convert_audio_to_mp3(local_path)
+        audio_suffix = metadata.audio_suffix
+        audio_type = metadata.audio_type
+        if converted_path != local_path:
+            try:
+                os.remove(local_path)
+            except OSError:
+                pass
+            local_path = converted_path
+            audio_suffix = ".mp3"
+            audio_type = "audio/mpeg"
+        storage_path = f"episodes/{episode_id}/audio{audio_suffix}"
         audio_url = upload_file(
-            client, settings, local_path, storage_path, content_type=metadata.audio_type
+            client, settings, local_path, storage_path, content_type=audio_type
         )
         update_episode(client, episode_id, {"storage_path": storage_path, "audio_url": audio_url})
 

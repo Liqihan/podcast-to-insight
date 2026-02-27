@@ -89,7 +89,7 @@ export default function Home() {
       });
       router.push(`/episode/${response.episode_id}?summary_id=${response.summary_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "提交失败");
+      setError(err instanceof Error ? err.message : "Submission failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -158,6 +158,7 @@ export default function Home() {
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
                   placeholder="Paste a podcast link"
+                  type="url"
                   className="flex h-11 flex-1 items-center rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-4 text-sm text-[var(--ink)]"
                 />
                 <button
@@ -165,7 +166,7 @@ export default function Home() {
                   disabled={isSubmitting}
                   className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {isSubmitting ? "提交中..." : "开始分析"}
+                  {isSubmitting ? "Submitting..." : "Start analysis"}
                 </button>
               </form>
               {error && (

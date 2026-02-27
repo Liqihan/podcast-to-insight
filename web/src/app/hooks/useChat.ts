@@ -32,6 +32,9 @@ export function useChat(episodeId: number) {
       });
       setMessages((prev) => [...prev, { role: "assistant", content: response.answer }]);
       setSources(response.sources || []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Request failed.";
+      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
     } finally {
       setIsLoading(false);
     }

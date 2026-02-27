@@ -227,6 +227,14 @@ async def resolve_episode_metadata(url: str, settings: Settings) -> EpisodeMetad
     description = meta.get("og:description") or meta.get("description")
     cover_image = meta.get("og:image") or meta.get("twitter:image")
     language = meta.get("og:locale")
+    duration = None
+    for key in ("music:duration", "og:audio:duration", "duration"):
+        if key in meta:
+            try:
+                duration = int(float(meta[key]))
+            except ValueError:
+                duration = None
+            break
     xyz_id = _extract_xyz_id(str(response.url))
     suffix = _audio_suffix_from_url(audio_url)
 
@@ -248,7 +256,7 @@ async def resolve_episode_metadata(url: str, settings: Settings) -> EpisodeMetad
         description=description,
         audio_url=audio_url,
         cover_image=cover_image,
-        duration=None,
+        duration=duration,
         audio_suffix=suffix,
         audio_type=content_type,
         language=language,

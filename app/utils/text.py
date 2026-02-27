@@ -28,6 +28,8 @@ def chunk_segments(
 ) -> list[dict[str, Any]]:
     if not segments:
         return []
+    if max_chars <= 0:
+        max_chars = 2000
 
     normalized = []
     for segment in segments:

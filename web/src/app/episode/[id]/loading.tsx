@@ -3,7 +3,7 @@ export default function LoadingEpisode() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="rounded-3xl border border-[var(--border)] bg-white p-10">
-          <div className="text-sm text-[var(--ink-muted)]">加载中...</div>
+          <div className="text-sm text-[var(--ink-muted)]">Loading...</div>
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ from app.schemas import (
     UserEpisodeItem,
 )
 from app.services.chat import generate_rag_answer
-from app.services.download import download_audio
+from app.services.download import convert_audio_to_mp3, download_audio
 from app.services.resolve import resolve_audio_url, resolve_episode_metadata
 from app.services.summarize import summarize_text
 from app.services.supabase_service import (
@@ -28,6 +28,7 @@ from app.services.supabase_service import (
     insert_episode,
     insert_summary,
     list_user_episodes,
+    update_episode,
 )
 from app.services.transcribe import transcribe_file
 from app.utils.auth import UserContext, get_current_user
@@ -59,6 +60,15 @@ async def summarize(request: SummarizeRequest) -> SummarizeResponse:
     try:
         audio_url = await resolve_audio_url(str(request.url), settings)
         local_path, _ = await download_audio(audio_url, settings)
+        converted_path = convert_audio_to_mp3(local_path)
+        if converted_path != local_path:
+            try:
+                import os
+
+                os.remove(local_path)
+            except OSError:
+                pass
+            local_path = converted_path
         transcript = await transcribe_file(local_path, settings)
         summary = await summarize_text(
             transcript.text, settings, language, style, max_words
@@ -91,18 +101,18 @@ async def process_episode(
         metadata = await resolve_episode_metadata(str(request.url), settings)
         client = get_supabase_client(settings)
         episode = fetch_episode_by_xyz_id(client, metadata.xyz_id)
+        episode_payload = {
+            "xyz_id": metadata.xyz_id,
+            "title": metadata.title,
+            "description": metadata.description,
+            "audio_url": metadata.audio_url,
+            "cover_image": metadata.cover_image,
+            "duration": metadata.duration,
+        }
         if not episode:
-            episode = insert_episode(
-                client,
-                {
-                    "xyz_id": metadata.xyz_id,
-                    "title": metadata.title,
-                    "description": metadata.description,
-                    "audio_url": metadata.audio_url,
-                    "cover_image": metadata.cover_image,
-                    "duration": metadata.duration,
-                },
-            )
+            episode = insert_episode(client, episode_payload)
+        else:
+            update_episode(client, episode["id"], episode_payload)
 
         summary = insert_summary(
             client,

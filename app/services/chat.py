@@ -59,7 +59,7 @@ async def generate_rag_answer(
         "You answer questions about podcast episodes using the provided context. "
         "If the context is insufficient, say you don't know."
     )
-    user = f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer in Chinese."
+    user = f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer in English."
     answer = await asyncio.to_thread(
         _chat_sync, settings, [{"role": "system", "content": system}, {"role": "user", "content": user}]
     )

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import tempfile
 from urllib.parse import urlparse
 
@@ -72,3 +74,37 @@ async def download_audio(url: str, settings: Settings) -> tuple[str, int]:
         raise ServiceError("Downloaded audio was empty", status_code=502)
 
     return tmp_file.name, total
+
+
+def convert_audio_to_mp3(path: str) -> str:
+    if shutil.which("ffmpeg") is None:
+        return path
+
+    output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
+    output_file.close()
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                path,
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-codec:a",
+                "libmp3lame",
+                output_file.name,
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError as exc:
+        try:
+            os.remove(output_file.name)
+        except OSError:
+            pass
+        raise ServiceError(f"Audio conversion failed: {exc}") from exc
+    return output_file.name
