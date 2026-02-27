@@ -1,7 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-
 type MindMapProps = {
   data?: Record<string, unknown> | null;
 };
@@ -29,15 +27,13 @@ function renderNode(node: Record<string, any>, level = 0) {
 }
 
 export default function MindMap({ data }: MindMapProps) {
-  const t = useTranslations("MindMap");
-
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
       <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-        {t("kicker")}
+        / 思维导图
       </div>
       <div className="mt-4 text-sm text-[var(--ink-muted)]">
-        {data ? renderNode(data) : t("emptyState")}
+        {data ? renderNode(data) : "思维导图暂不可用。"}
       </div>
     </div>
   );

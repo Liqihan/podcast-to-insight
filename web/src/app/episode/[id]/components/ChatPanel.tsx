@@ -1,10 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useTranslations } from "next-intl";
 
-import { useChat } from "../../../../hooks/useChat";
-import { usePlayerStore } from "../../../../store/player";
+import { useChat } from "../../../hooks/useChat";
+import { usePlayerStore } from "../../../store/player";
 
 type ChatPanelProps = {
   episodeId: number;
@@ -14,7 +13,6 @@ export default function ChatPanel({ episodeId }: ChatPanelProps) {
   const { messages, sources, sendMessage, isLoading } = useChat(episodeId);
   const [input, setInput] = useState("");
   const seekTo = usePlayerStore((state) => state.seekTo);
-  const t = useTranslations("ChatPanel");
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -26,7 +24,7 @@ export default function ChatPanel({ episodeId }: ChatPanelProps) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
       <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-        {t("kicker")}
+        / 对话
       </div>
       <div className="mt-4 space-y-4">
         {messages.map((message, index) => (
@@ -42,14 +40,16 @@ export default function ChatPanel({ episodeId }: ChatPanelProps) {
           </div>
         ))}
         {messages.length === 0 && (
-          <p className="text-sm text-[var(--ink-muted)]">{t("emptyState")}</p>
+          <p className="text-sm text-[var(--ink-muted)]">
+            可以随便问，比如：“嘉宾如何看待 AI 安全？”
+          </p>
         )}
       </div>
       <form onSubmit={onSubmit} className="mt-5 flex gap-2">
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={t("placeholder")}
+          placeholder="提个问题"
           className="flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm"
         />
         <button
@@ -57,13 +57,13 @@ export default function ChatPanel({ episodeId }: ChatPanelProps) {
           disabled={isLoading}
           className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {isLoading ? t("thinking") : t("send")}
+          {isLoading ? "思考中..." : "发送"}
         </button>
       </form>
       {sources.length > 0 && (
         <div className="mt-6">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-            {t("sources")}
+            来源
           </div>
           <div className="mt-3 space-y-2">
             {sources.map((source, index) => (

@@ -1,11 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 
-import { usePodcast } from "../../../hooks/usePodcast";
-import LocaleSwitcher from "../../../components/LocaleSwitcher";
-import ThemeSwitcher from "../../../components/ThemeSwitcher";
+import { usePodcast } from "../../hooks/usePodcast";
+import ThemeSwitcher from "../../components/ThemeSwitcher";
 import AudioPlayer from "./components/AudioPlayer";
 import ChatPanel from "./components/ChatPanel";
 import MindMap from "./components/MindMap";
@@ -15,7 +13,6 @@ export default function EpisodePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const summaryId = searchParams.get("summary_id") ?? undefined;
   const { status, episode, isLoading } = usePodcast(params.id, summaryId);
-  const t = useTranslations("Episode");
 
   const summary = episode?.summary;
 
@@ -25,24 +22,23 @@ export default function EpisodePage({ params }: { params: { id: string } }) {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex flex-col gap-2">
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-              {t("kicker")}
+              / 单集
             </div>
             <h1 className="text-3xl font-semibold">
-              {episode?.title ?? t("loadingTitle")}
+              {episode?.title ?? "正在加载节目详情"}
             </h1>
             <p className="max-w-2xl text-sm text-[var(--ink-muted)]">
-              {episode?.description ?? t("loadingDescription")}
+              {episode?.description ?? "处理完成后将显示摘要与问答。"}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <LocaleSwitcher />
             <ThemeSwitcher />
           </div>
         </div>
 
         {status?.status && (
           <div className="mt-6 inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--panel-translucent)] px-4 py-2 text-xs font-semibold text-[var(--ink-muted)]">
-            {t("status", { status: status.status })}
+            状态：{status.status}
           </div>
         )}
 
@@ -60,7 +56,7 @@ export default function EpisodePage({ params }: { params: { id: string } }) {
             <ChatPanel episodeId={Number(params.id)} />
             {isLoading && (
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 text-sm text-[var(--ink-muted)]">
-                {t("loadingData")}
+                加载中，请稍候。
               </div>
             )}
           </div>
