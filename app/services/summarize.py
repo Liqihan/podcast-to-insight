@@ -1,42 +1,62 @@
 from __future__ import annotations
 
-import httpx
+import asyncio
+from http import HTTPStatus
+from typing import Any, Optional
+
+import dashscope
 
 from app.config import Settings
 from app.utils.errors import ServiceError
 from app.utils.text import chunk_text
 
 
-async def _openai_chat(
-    settings: Settings, messages: list[dict[str, str]]
-) -> str:
-    if not settings.openai_api_key:
-        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
+def _extract_summary_text(output: Any) -> Optional[str]:
+    if isinstance(output, dict):
+        text = output.get("text")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+        choices = output.get("choices")
+        if isinstance(choices, list) and choices:
+            first = choices[0]
+            if isinstance(first, dict):
+                message = first.get("message")
+                if isinstance(message, dict):
+                    content = message.get("content")
+                    if isinstance(content, str) and content.strip():
+                        return content.strip()
+    return None
 
-    url = f"{settings.openai_base_url}/chat/completions"
-    headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
-    payload = {
-        "model": settings.openai_summary_model,
-        "messages": messages,
-        "temperature": 0.2,
-    }
 
-    try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout_s) as client:
-            response = await client.post(url, headers=headers, json=payload)
-    except httpx.RequestError as exc:
-        raise ServiceError(f"Summary request failed: {exc}", status_code=502) from exc
+def _dashscope_chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
+    if not settings.dashscope_api_key:
+        raise ServiceError("DASHSCOPE_API_KEY is not set", status_code=501)
 
-    if response.status_code >= 400:
+    dashscope.base_http_api_url = settings.dashscope_base_url
+    dashscope.api_key = settings.dashscope_api_key
+
+    response = dashscope.Generation.call(
+        model=settings.dashscope_summary_model,
+        messages=messages,
+        result_format="message",
+        temperature=0.2,
+    )
+
+    if response.status_code != HTTPStatus.OK:
         raise ServiceError(
-            f"Summary failed: {response.status_code} {response.text}", status_code=502
+            f"Summary failed: {response.code} {response.message}", status_code=502
         )
 
-    data = response.json()
-    try:
-        return data["choices"][0]["message"]["content"].strip()
-    except (KeyError, IndexError, AttributeError) as exc:
-        raise ServiceError("Unexpected summary response format", status_code=502) from exc
+    text = _extract_summary_text(response.output)
+    if not text:
+        raise ServiceError("Empty summary result", status_code=502)
+    return text
+
+
+async def _dashscope_chat(
+    settings: Settings, messages: list[dict[str, str]]
+) -> str:
+    return await asyncio.to_thread(_dashscope_chat_sync, settings, messages)
 
 
 def _build_prompt(
@@ -67,14 +87,14 @@ async def summarize_text(
     chunks = chunk_text(text, settings.chunk_chars, settings.chunk_overlap)
     if len(chunks) == 1:
         messages = _build_prompt(chunks[0], language, style, max_words, combine=False)
-        return await _openai_chat(settings, messages)
+        return await _dashscope_chat(settings, messages)
 
     per_chunk_words = max(80, max_words // len(chunks))
     partials: list[str] = []
     for chunk in chunks:
         messages = _build_prompt(chunk, language, style, per_chunk_words, combine=False)
-        partials.append(await _openai_chat(settings, messages))
+        partials.append(await _dashscope_chat(settings, messages))
 
     combined = "\n\n".join(partials)
     messages = _build_prompt(combined, language, style, max_words, combine=True)
-    return await _openai_chat(settings, messages)
+    return await _dashscope_chat(settings, messages)

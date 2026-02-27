@@ -5,8 +5,7 @@ FastAPI backend that turns a Xiaoyuzhou episode page (or direct audio URL) into 
 ## Requirements
 
 - Python 3.10+
-- DashScope API key for transcription
-- OpenAI API key for summarization
+- DashScope API key for transcription + summarization
 
 ## Setup
 
@@ -14,16 +13,14 @@ FastAPI backend that turns a Xiaoyuzhou episode page (or direct audio URL) into 
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export OPENAI_API_KEY="your_key"
 export DASHSCOPE_API_KEY="your_dashscope_key"
 ```
 
 Optional environment variables:
 
-- `OPENAI_BASE_URL` (default: `https://api.openai.com/v1`)
-- `OPENAI_SUMMARY_MODEL` (default: `gpt-4o-mini`)
 - `DASHSCOPE_BASE_URL` (default: `https://dashscope.aliyuncs.com/api/v1`)
 - `DASHSCOPE_ASR_MODEL` (default: `fun-asr`)
+- `DASHSCOPE_SUMMARY_MODEL` (default: `qwen-plus`)
 - `DASHSCOPE_POLL_INTERVAL_S` (default: `2.0`)
 - `DASHSCOPE_POLL_TIMEOUT_S` (default: `900.0`)
 - `MAX_AUDIO_BYTES` (default: `209715200`)

@@ -7,12 +7,10 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class Settings:
-    openai_api_key: Optional[str]
-    openai_base_url: str
-    openai_summary_model: str
     dashscope_api_key: Optional[str]
     dashscope_base_url: str
     dashscope_asr_model: str
+    dashscope_summary_model: str
     dashscope_poll_interval_s: float
     dashscope_poll_timeout_s: float
     http_timeout_s: float
@@ -46,16 +44,12 @@ def _getenv_float(name: str, default: float) -> float:
 
 def get_settings() -> Settings:
     return Settings(
-        openai_api_key=os.getenv("OPENAI_API_KEY"),
-        openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip(
-            "/"
-        ),
-        openai_summary_model=os.getenv("OPENAI_SUMMARY_MODEL", "gpt-4o-mini"),
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
         dashscope_base_url=os.getenv(
             "DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"
         ).rstrip("/"),
         dashscope_asr_model=os.getenv("DASHSCOPE_ASR_MODEL", "fun-asr"),
+        dashscope_summary_model=os.getenv("DASHSCOPE_SUMMARY_MODEL", "qwen-plus"),
         dashscope_poll_interval_s=_getenv_float("DASHSCOPE_POLL_INTERVAL_S", 2.0),
         dashscope_poll_timeout_s=_getenv_float("DASHSCOPE_POLL_TIMEOUT_S", 900.0),
         http_timeout_s=_getenv_float("HTTP_TIMEOUT_S", 120.0),
