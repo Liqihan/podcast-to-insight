@@ -14,16 +14,24 @@ def _iflow_chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
         raise ServiceError("IFLOW_API_KEY is not set", status_code=501)
 
     client = OpenAI(base_url=settings.iflow_base_url, api_key=settings.iflow_api_key)
-    response = client.chat.completions.create(
-        model=settings.iflow_summary_model, messages=messages
-    )
     try:
-        content = response.choices[0].message.content
-    except (AttributeError, IndexError) as exc:
-        raise ServiceError("Unexpected summary response format", status_code=502) from exc
-    if not content:
-        raise ServiceError("Empty summary result", status_code=502)
-    return content.strip()
+        response = client.chat.completions.create(
+            model=settings.iflow_summary_model, messages=messages
+        )
+    except Exception as exc:
+        raise ServiceError(f"Summary request failed: {exc}", status_code=502) from exc
+
+    choices = getattr(response, "choices", None)
+    if choices and len(choices) > 0:
+        content = getattr(choices[0].message, "content", None)
+        if content:
+            return content.strip()
+
+    status = getattr(response, "status", None)
+    msg = getattr(response, "msg", None)
+    if status or msg:
+        raise ServiceError(f"Summary failed: {status} {msg}", status_code=502)
+    raise ServiceError("Empty summary result", status_code=502)
 
 
 async def _iflow_chat(settings: Settings, messages: list[dict[str, str]]) -> str:

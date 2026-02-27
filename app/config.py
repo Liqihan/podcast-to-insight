@@ -57,7 +57,7 @@ def get_settings() -> Settings:
         iflow_base_url=os.getenv("IFLOW_BASE_URL", "https://apis.iflow.cn/v1").rstrip(
             "/"
         ),
-        iflow_summary_model=os.getenv("IFLOW_SUMMARY_MODEL", "TBStars2-200B-A13B"),
+        iflow_summary_model=os.getenv("IFLOW_SUMMARY_MODEL", "qwen3-max"),
         http_timeout_s=_getenv_float("HTTP_TIMEOUT_S", 120.0),
         max_audio_bytes=_getenv_int("MAX_AUDIO_BYTES", 200 * 1024 * 1024),
         chunk_chars=_getenv_int("SUMMARY_CHUNK_CHARS", 6000),
