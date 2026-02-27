@@ -3,3 +3,4 @@ uvicorn[standard]>=0.23
 httpx>=0.24
 pydantic>=2.0
 dashscope>=1.16
+openai>=1.0.0
