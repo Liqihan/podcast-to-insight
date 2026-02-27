@@ -1,0 +1,168 @@
+{
+  "Common": {
+    "language": {
+      "label": "Language",
+      "english": "English",
+      "chinese": "简体中文"
+    },
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "Home": {
+    "brand": "PodInsight",
+    "banner": {
+      "text": "Big news: Podcast Insight is now in private beta.",
+      "action": "Request access →"
+    },
+    "nav": {
+      "product": "Product",
+      "pricing": "Pricing",
+      "docs": "Docs",
+      "blog": "Blog"
+    },
+    "actions": {
+      "login": "Log in",
+      "try": "Try it out"
+    },
+    "hero": {
+      "kicker": "/ podcast insight layer",
+      "title": "Turn podcasts into actionable intelligence.",
+      "subtitle": "Connect audio to your workflows. Extract themes, decisions, and citations that teams can trust.",
+      "primaryAction": "Try a demo",
+      "secondaryAction": "Talk to an expert"
+    },
+    "form": {
+      "placeholder": "Paste a podcast link",
+      "submitting": "Submitting...",
+      "submit": "Start analysis",
+      "example": "Example: \"What did the guest say about RLHF safety?\"",
+      "helper": "Instant citations and timestamps"
+    },
+    "errors": {
+      "submitFailed": "Submission failed"
+    },
+    "trustedBy": "Trusted by researchers, founders, and media teams",
+    "workflow": {
+      "kicker": "/ the workflow layer",
+      "title": "Loved by researchers. Built for teams.",
+      "subtitle": "Everything you need to go from audio to decision-ready summaries, without manual transcription or messy docs."
+    },
+    "features": [
+      {
+        "title": "Instant episode intelligence",
+        "description": "Paste a podcast link and get structured highlights, decisions, and key quotes in seconds."
+      },
+      {
+        "title": "Reliable summaries at scale",
+        "description": "Chunking, deduplication, and multi-pass synthesis keep long-form audio accurate and consistent."
+      },
+      {
+        "title": "Built for teams and workflows",
+        "description": "Export insights to docs, share transcripts, and keep the source audio traceable."
+      }
+    ],
+    "benchmarksSection": {
+      "kicker": "/ benchmarks",
+      "title": "Audio search grounded in evidence.",
+      "action": "View methodology",
+      "cardPrimary": {
+        "label": "Podcast QA score",
+        "value": "92.4",
+        "description": "Consistent summaries across 60+ hours of long-form audio."
+      },
+      "cardSecondary": {
+        "label": "Evidence coverage",
+        "action": "Run your own benchmark"
+      },
+      "metrics": {
+        "speaker": "Speaker attribution",
+        "speakerValue": "94%",
+        "citation": "Citation density",
+        "citationValue": "87%",
+        "topic": "Topic coverage",
+        "topicValue": "91%"
+      }
+    },
+    "benchmarkLabels": ["Podcast QA", "Topic recall", "Speaker attribution", "Long-form summaries"],
+    "proof": {
+      "kicker": "/ proof is in the numbers",
+      "title": "Trusted in production. Proven at scale.",
+      "subtitle": "From one-off research to daily insight pipelines, PodInsight keeps your team aligned."
+    },
+    "stats": [
+      { "value": "58k+", "label": "Episodes processed" },
+      { "value": "3.2x", "label": "Faster research cycles" },
+      { "value": "92%", "label": "Insight reuse rate" },
+      { "value": "24/7", "label": "Always-on analysis" }
+    ],
+    "pressSection": {
+      "kicker": "/ press room"
+    },
+    "pressItems": [
+      {
+        "title": "Audio to action in minutes",
+        "outlet": "Product Review",
+        "quote": "The closest thing to a research assistant for podcasts. Fast, clean, and remarkably consistent."
+      },
+      {
+        "title": "A calm interface for deep work",
+        "outlet": "Design Week",
+        "quote": "The UI stays out of the way while the insight layer does the heavy lifting."
+      },
+      {
+        "title": "A new default for teams",
+        "outlet": "SaaS Today",
+        "quote": "Podcasts become searchable, citeable, and shareable—without manual transcription."
+      }
+    ],
+    "final": {
+      "kicker": "/ start building",
+      "title": "Power your team with audio-first insights.",
+      "subtitle": "Launch your first podcast workflow in minutes. Integrate with Slack, Notion, and your internal knowledge base.",
+      "primaryAction": "Explore API docs",
+      "secondaryAction": "Start free trial"
+    },
+    "footer": {
+      "company": "Company",
+      "security": "Security",
+      "careers": "Careers",
+      "status": "Status",
+      "contact": "Contact"
+    }
+  },
+  "Episode": {
+    "kicker": "/ episode",
+    "loadingTitle": "Loading episode details",
+    "loadingDescription": "Summary and Q&A will appear once processing is complete.",
+    "status": "Status: {status}",
+    "loadingData": "Loading data. Please wait."
+  },
+  "AudioPlayer": {
+    "notReady": "Audio is not ready yet.",
+    "titleFallback": "Audio"
+  },
+  "ChatPanel": {
+    "kicker": "/ Chat",
+    "emptyState": "Ask anything, for example: \"What did the guest say about AI safety?\"",
+    "placeholder": "Ask a question",
+    "thinking": "Thinking...",
+    "send": "Send",
+    "sources": "Sources"
+  },
+  "MindMap": {
+    "kicker": "/ Mind map",
+    "emptyState": "Mind map is not available yet."
+  },
+  "Summary": {
+    "kicker": "/ Summary",
+    "loadingTitle": "Generating summary...",
+    "keyTakeaways": "Key takeaways"
+  },
+  "Loading": {
+    "loading": "Loading..."
+  }
+}

@@ -1,77 +1,32 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next-intl/navigation";
 
-import { authorizedFetch } from "./lib/api-client";
+import { authorizedFetch } from "../lib/api-client";
+import LocaleSwitcher from "../components/LocaleSwitcher";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
-const features = [
-  {
-    title: "Instant episode intelligence",
-    description:
-      "Paste a podcast link and get structured highlights, decisions, and key quotes in seconds.",
-  },
-  {
-    title: "Reliable summaries at scale",
-    description:
-      "Chunking, deduplication, and multi-pass synthesis keep long-form audio accurate and consistent.",
-  },
-  {
-    title: "Built for teams and workflows",
-    description:
-      "Export insights to docs, share transcripts, and keep the source audio traceable.",
-  },
-];
+const logos = ["Northwind", "Layer9", "Kiteworks", "Studio 11", "Everglow", "Signal Labs"];
 
-const stats = [
-  { value: "58k+", label: "Episodes processed" },
-  { value: "3.2x", label: "Faster research cycles" },
-  { value: "92%", label: "Insight reuse rate" },
-  { value: "24/7", label: "Always-on analysis" },
-];
+type Feature = { title: string; description: string };
 
-const benchmarks = [
-  "Podcast QA",
-  "Topic recall",
-  "Speaker attribution",
-  "Long-form summaries",
-];
+type Stat = { value: string; label: string };
 
-const press = [
-  {
-    title: "Audio to action in minutes",
-    outlet: "Product Review",
-    quote:
-      "The closest thing to a research assistant for podcasts. Fast, clean, and remarkably consistent.",
-  },
-  {
-    title: "A calm interface for deep work",
-    outlet: "Design Week",
-    quote:
-      "The UI stays out of the way while the insight layer does the heavy lifting.",
-  },
-  {
-    title: "A new default for teams",
-    outlet: "SaaS Today",
-    quote:
-      "Podcasts become searchable, citeable, and shareable—without manual transcription.",
-  },
-];
-
-const logos = [
-  "Northwind",
-  "Layer9",
-  "Kiteworks",
-  "Studio 11",
-  "Everglow",
-  "Signal Labs",
-];
+type PressItem = { title: string; outlet: string; quote: string };
 
 export default function Home() {
   const router = useRouter();
+  const t = useTranslations("Home");
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const features = t.raw("features") as Feature[];
+  const stats = t.raw("stats") as Stat[];
+  const benchmarks = t.raw("benchmarkLabels") as string[];
+  const press = t.raw("pressItems") as PressItem[];
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -89,7 +44,7 @@ export default function Home() {
       });
       router.push(`/episode/${response.episode_id}?summary_id=${response.summary_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
+      setError(err instanceof Error ? err.message : t("errors.submitFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -98,93 +53,90 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mt-6 flex items-center justify-center rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-xs font-medium text-[var(--ink-muted)] backdrop-blur">
-          Big news: Podcast Insight is now in private beta.{" "}
-          <span className="ml-1 text-[var(--ink)]">Request access →</span>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--panel-translucent)] px-4 py-2 text-xs font-medium text-[var(--ink-muted)] backdrop-blur">
+          <div>
+            {t("banner.text")} <span className="ml-1 text-[var(--ink)]">{t("banner.action")}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <LocaleSwitcher />
+            <ThemeSwitcher />
+          </div>
         </div>
 
         <header className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-2 text-base font-semibold">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ink)] text-white">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white">
               P
             </span>
-            PodInsight
+            {t("brand")}
           </div>
           <nav className="hidden items-center gap-8 text-sm font-medium text-[var(--ink-muted)] md:flex">
-            <span className="text-[var(--ink)]">Product</span>
-            <span>Pricing</span>
-            <span>Docs</span>
-            <span>Blog</span>
+            <span className="text-[var(--ink)]">{t("nav.product")}</span>
+            <span>{t("nav.pricing")}</span>
+            <span>{t("nav.docs")}</span>
+            <span>{t("nav.blog")}</span>
           </nav>
           <div className="flex items-center gap-3 text-sm">
             <button className="hidden rounded-full border border-[var(--border)] px-4 py-2 text-[var(--ink)] md:inline-flex">
-              Log in
+              {t("actions.login")}
             </button>
-            <button className="rounded-full bg-[var(--ink)] px-4 py-2 text-white">
-              Try it out
+            <button className="rounded-full bg-[var(--accent)] px-4 py-2 text-white">
+              {t("actions.try")}
             </button>
           </div>
         </header>
 
-        <section className="relative mt-16 overflow-hidden rounded-3xl border border-[var(--border)] bg-white/80 p-10 shadow-[0_40px_120px_rgba(20,20,20,0.08)] backdrop-blur">
+        <section className="relative mt-16 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--panel-translucent)] p-10 shadow-[0_40px_120px_rgba(20,20,20,0.08)] backdrop-blur">
           <div className="absolute right-[-120px] top-[-140px] h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(255,216,173,0.75),rgba(255,216,173,0))]" />
           <div className="absolute left-[-120px] bottom-[-140px] h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(173,210,255,0.7),rgba(173,210,255,0))]" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-              / podcast insight layer
+              {t("hero.kicker")}
             </div>
             <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl font-display">
-              Turn podcasts into actionable intelligence.
+              {t("hero.title")}
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-[var(--ink-muted)]">
-              Connect audio to your workflows. Extract themes, decisions, and
-              citations that teams can trust.
+              {t("hero.subtitle")}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white">
-                Try a demo
+              <button className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white">
+                {t("hero.primaryAction")}
               </button>
-              <button className="rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--ink)]">
-                Talk to an expert
+              <button className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)]">
+                {t("hero.secondaryAction")}
               </button>
             </div>
 
-            <div className="mt-10 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm">
-              <form
-                onSubmit={onSubmit}
-                className="flex flex-col gap-3 md:flex-row md:items-center"
-              >
+            <div className="mt-10 rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-sm">
+              <form onSubmit={onSubmit} className="flex flex-col gap-3 md:flex-row md:items-center">
                 <input
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
-                  placeholder="Paste a podcast link"
+                  placeholder={t("form.placeholder")}
                   type="url"
                   className="flex h-11 flex-1 items-center rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-4 text-sm text-[var(--ink)]"
                 />
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                  className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {isSubmitting ? "Submitting..." : "Start analysis"}
+                  {isSubmitting ? t("form.submitting") : t("form.submit")}
                 </button>
               </form>
-              {error && (
-                <div className="mt-3 text-xs text-red-500">{error}</div>
-              )}
+              {error && <div className="mt-3 text-xs text-red-500">{error}</div>}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-muted)]">
-                <span>Example: "What did the guest say about RLHF safety?"</span>
+                <span>{t("form.example")}</span>
                 <span className="h-1 w-1 rounded-full bg-[var(--ink-muted)]" />
-                <span>Instant citations and timestamps</span>
+                <span>{t("form.helper")}</span>
               </div>
             </div>
           </div>
         </section>
 
         <section className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm font-medium text-[var(--ink-muted)]">
-            Trusted by researchers, founders, and media teams
-          </p>
+          <p className="text-sm font-medium text-[var(--ink-muted)]">{t("trustedBy")}</p>
           <div className="flex flex-wrap gap-6 text-sm font-semibold text-[var(--ink-muted)]">
             {logos.map((logo) => (
               <span key={logo}>{logo}</span>
@@ -194,44 +146,39 @@ export default function Home() {
 
         <section className="mt-24">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / the workflow layer
+            {t("workflow.kicker")}
           </div>
           <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl font-display">
-            Loved by researchers. Built for teams.
+            {t("workflow.title")}
           </h2>
-          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">
-            Everything you need to go from audio to decision-ready summaries,
-            without manual transcription or messy docs.
-          </p>
+          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">{t("workflow.subtitle")}</p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-muted)] text-sm font-semibold">
                   {index + 1}
                 </div>
                 <h3 className="mt-4 text-lg font-semibold">{feature.title}</h3>
-                <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {feature.description}
-                </p>
+                <p className="mt-2 text-sm text-[var(--ink-muted)]">{feature.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-24 rounded-3xl border border-[var(--border)] bg-white p-10">
+        <section className="mt-24 rounded-3xl border border-[var(--border)] bg-[var(--panel)] p-10">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / benchmarks
+            {t("benchmarksSection.kicker")}
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-3xl font-semibold tracking-tight md:text-4xl font-display">
-              Audio search grounded in evidence.
+              {t("benchmarksSection.title")}
             </h2>
-            <button className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)]">
-              View methodology
+            <button className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold text-[var(--ink)]">
+              {t("benchmarksSection.action")}
             </button>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -240,7 +187,7 @@ export default function Home() {
                 key={label}
                 className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] ${
                   index === 0
-                    ? "bg-[var(--ink)] text-white"
+                    ? "bg-[var(--accent)] text-white"
                     : "border border-[var(--border)] text-[var(--ink-muted)]"
                 }`}
               >
@@ -252,33 +199,33 @@ export default function Home() {
           <div className="mt-8 grid gap-6 md:grid-cols-[1.2fr_1fr]">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                Podcast QA score
+                {t("benchmarksSection.cardPrimary.label")}
               </p>
-              <div className="mt-4 text-5xl font-semibold">92.4</div>
+              <div className="mt-4 text-5xl font-semibold">{t("benchmarksSection.cardPrimary.value")}</div>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                Consistent summaries across 60+ hours of long-form audio.
+                {t("benchmarksSection.cardPrimary.description")}
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                Evidence coverage
+                {t("benchmarksSection.cardSecondary.label")}
               </p>
               <div className="mt-4 space-y-3 text-sm text-[var(--ink-muted)]">
                 <div className="flex items-center justify-between">
-                  <span>Speaker attribution</span>
-                  <span className="font-semibold text-[var(--ink)]">94%</span>
+                  <span>{t("benchmarksSection.metrics.speaker")}</span>
+                  <span className="font-semibold text-[var(--ink)]">{t("benchmarksSection.metrics.speakerValue")}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Citation density</span>
-                  <span className="font-semibold text-[var(--ink)]">87%</span>
+                  <span>{t("benchmarksSection.metrics.citation")}</span>
+                  <span className="font-semibold text-[var(--ink)]">{t("benchmarksSection.metrics.citationValue")}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Topic coverage</span>
-                  <span className="font-semibold text-[var(--ink)]">91%</span>
+                  <span>{t("benchmarksSection.metrics.topic")}</span>
+                  <span className="font-semibold text-[var(--ink)]">{t("benchmarksSection.metrics.topicValue")}</span>
                 </div>
               </div>
-              <button className="mt-6 w-full rounded-full bg-[var(--ink)] py-3 text-sm font-semibold text-white">
-                Run your own benchmark
+              <button className="mt-6 w-full rounded-full bg-[var(--accent)] py-3 text-sm font-semibold text-white">
+                {t("benchmarksSection.cardSecondary.action")}
               </button>
             </div>
           </div>
@@ -286,25 +233,17 @@ export default function Home() {
 
         <section className="mt-24">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / proof is in the numbers
+            {t("proof.kicker")}
           </div>
           <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl font-display">
-            Trusted in production. Proven at scale.
+            {t("proof.title")}
           </h2>
-          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">
-            From one-off research to daily insight pipelines, PodInsight keeps
-            your team aligned.
-          </p>
+          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">{t("proof.subtitle")}</p>
           <div className="mt-10 grid gap-6 md:grid-cols-4">
             {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-[var(--border)] bg-white p-5"
-              >
+              <div key={stat.label} className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5">
                 <div className="text-3xl font-semibold">{stat.value}</div>
-                <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {stat.label}
-                </div>
+                <div className="mt-2 text-sm text-[var(--ink-muted)]">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -312,46 +251,41 @@ export default function Home() {
 
         <section className="mt-24">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / press room
+            {t("pressSection.kicker")}
           </div>
           <div className="mt-5 grid gap-6 md:grid-cols-3">
             {press.map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm"
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
                   {item.outlet}
                 </p>
                 <h3 className="mt-3 text-lg font-semibold">{item.title}</h3>
-                <p className="mt-3 text-sm text-[var(--ink-muted)]">
-                  “{item.quote}”
-                </p>
+                <p className="mt-3 text-sm text-[var(--ink-muted)]">“{item.quote}”</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-24 rounded-3xl border border-[var(--border)] bg-[var(--ink)] p-10 text-white">
+        <section className="mt-24 rounded-3xl border border-[var(--border)] bg-[var(--accent)] p-10 text-white">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
-                / start building
+                {t("final.kicker")}
               </div>
               <h2 className="mt-4 text-3xl font-semibold md:text-4xl font-display">
-                Power your team with audio-first insights.
+                {t("final.title")}
               </h2>
-              <p className="mt-3 max-w-xl text-white/70">
-                Launch your first podcast workflow in minutes. Integrate with
-                Slack, Notion, and your internal knowledge base.
-              </p>
+              <p className="mt-3 max-w-xl text-white/70">{t("final.subtitle")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[var(--ink)]">
-                Explore API docs
+              <button className="rounded-full bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)]">
+                {t("final.primaryAction")}
               </button>
               <button className="rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white">
-                Start free trial
+                {t("final.secondaryAction")}
               </button>
             </div>
           </div>
@@ -360,17 +294,17 @@ export default function Home() {
         <footer className="mt-24 border-t border-[var(--border)] py-10 text-sm text-[var(--ink-muted)]">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2 text-base font-semibold text-[var(--ink)]">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ink)] text-white">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white">
                 P
               </span>
-              PodInsight
+              {t("brand")}
             </div>
             <div className="flex flex-wrap gap-6">
-              <span>Company</span>
-              <span>Security</span>
-              <span>Careers</span>
-              <span>Status</span>
-              <span>Contact</span>
+              <span>{t("footer.company")}</span>
+              <span>{t("footer.security")}</span>
+              <span>{t("footer.careers")}</span>
+              <span>{t("footer.status")}</span>
+              <span>{t("footer.contact")}</span>
             </div>
           </div>
         </footer>

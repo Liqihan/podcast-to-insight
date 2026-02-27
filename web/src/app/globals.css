@@ -6,6 +6,22 @@
   --ink: #121317;
   --ink-muted: #5b5f66;
   --border: #dfddd3;
+  --panel: #ffffff;
+  --panel-muted: #f5f4ee;
+  --panel-translucent: rgba(255, 255, 255, 0.75);
+  --accent: #121317;
+}
+
+.dark {
+  --bg: #0f1116;
+  --bg-muted: #191c22;
+  --ink: #f5f7fb;
+  --ink-muted: #a6afbd;
+  --border: #2c3140;
+  --panel: #171b24;
+  --panel-muted: #1f2432;
+  --panel-translucent: rgba(23, 27, 36, 0.82);
+  --accent: #2b3242;
 }
 
 body {
@@ -14,6 +30,12 @@ body {
   color: var(--ink);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+}
+
+.dark body {
+  background: radial-gradient(700px 380px at 85% -10%, rgba(255, 201, 145, 0.18) 0%, transparent 60%),
+    radial-gradient(700px 360px at 10% 0%, rgba(140, 180, 255, 0.2) 0%, transparent 55%),
+    var(--bg);
 }
 
 .font-display {

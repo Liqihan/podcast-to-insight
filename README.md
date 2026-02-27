@@ -33,11 +33,27 @@ Optional environment variables:
 - `SUMMARY_STYLE` (default: `bullet`)
 - `SUMMARY_MAX_WORDS` (default: `200`)
 
-## Run
+## 启动
+
+后端（FastAPI，默认 `http://localhost:8000`）：
 
 ```bash
 uvicorn app.main:app --reload
 ```
+
+前端（Next.js，默认 `http://localhost:3000`）：
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+可选前端环境变量（放到 `web/.env.local` 或启动前导出）：
+
+- `NEXT_PUBLIC_API_BASE_URL`（默认: `http://localhost:8000`）
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## API
 

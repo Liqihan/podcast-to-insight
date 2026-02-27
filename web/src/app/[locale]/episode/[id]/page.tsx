@@ -1,8 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
-import { usePodcast } from "../../hooks/usePodcast";
+import { usePodcast } from "../../../hooks/usePodcast";
+import LocaleSwitcher from "../../../components/LocaleSwitcher";
+import ThemeSwitcher from "../../../components/ThemeSwitcher";
 import AudioPlayer from "./components/AudioPlayer";
 import ChatPanel from "./components/ChatPanel";
 import MindMap from "./components/MindMap";
@@ -12,28 +15,34 @@ export default function EpisodePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const summaryId = searchParams.get("summary_id") ?? undefined;
   const { status, episode, isLoading } = usePodcast(params.id, summaryId);
+  const t = useTranslations("Episode");
 
   const summary = episode?.summary;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="flex flex-col gap-2">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / episode
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
+              {t("kicker")}
+            </div>
+            <h1 className="text-3xl font-semibold">
+              {episode?.title ?? t("loadingTitle")}
+            </h1>
+            <p className="max-w-2xl text-sm text-[var(--ink-muted)]">
+              {episode?.description ?? t("loadingDescription")}
+            </p>
           </div>
-          <h1 className="text-3xl font-semibold">
-            {episode?.title ?? "Loading episode details"}
-          </h1>
-          <p className="max-w-2xl text-sm text-[var(--ink-muted)]">
-            {episode?.description ??
-              "Summary and Q&A will appear once processing is complete."}
-          </p>
+          <div className="flex items-center gap-2">
+            <LocaleSwitcher />
+            <ThemeSwitcher />
+          </div>
         </div>
 
         {status?.status && (
-          <div className="mt-6 inline-flex items-center rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-xs font-semibold text-[var(--ink-muted)]">
-            Status: {status.status}
+          <div className="mt-6 inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--panel-translucent)] px-4 py-2 text-xs font-semibold text-[var(--ink-muted)]">
+            {t("status", { status: status.status })}
           </div>
         )}
 
@@ -50,8 +59,8 @@ export default function EpisodePage({ params }: { params: { id: string } }) {
           <div className="space-y-6">
             <ChatPanel episodeId={Number(params.id)} />
             {isLoading && (
-              <div className="rounded-2xl border border-[var(--border)] bg-white p-6 text-sm text-[var(--ink-muted)]">
-                Loading data. Please wait.
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 text-sm text-[var(--ink-muted)]">
+                {t("loadingData")}
               </div>
             )}
           </div>

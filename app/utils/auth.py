@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 import jwt
 from fastapi import Depends, Header, HTTPException
@@ -11,12 +12,12 @@ from app.config import Settings, get_settings
 @dataclass(frozen=True)
 class UserContext:
     id: str
-    email: str | None = None
-    role: str | None = None
+    email: Optional[str] = None
+    role: Optional[str] = None
 
 
 def get_current_user(
-    authorization: str | None = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
     settings: Settings = Depends(get_settings),
 ) -> UserContext:
     if not authorization or not authorization.startswith("Bearer "):
