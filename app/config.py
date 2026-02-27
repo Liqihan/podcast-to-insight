@@ -7,6 +7,21 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class Settings:
+    supabase_url: Optional[str]
+    supabase_service_key: Optional[str]
+    supabase_jwt_secret: Optional[str]
+    supabase_storage_bucket: str
+    openai_api_key: Optional[str]
+    openai_base_url: str
+    openai_chat_model: str
+    openai_embed_model: str
+    openai_transcribe_model: str
+    openai_summary_max_tokens: int
+    celery_broker_url: Optional[str]
+    celery_result_backend: Optional[str]
+    redis_url: Optional[str]
+    rag_match_threshold: float
+    rag_match_count: int
     dashscope_api_key: Optional[str]
     dashscope_base_url: str
     dashscope_asr_model: str
@@ -19,6 +34,8 @@ class Settings:
     max_audio_bytes: int
     chunk_chars: int
     chunk_overlap: int
+    transcript_chunk_chars: int
+    transcript_chunk_overlap: int
     default_language: str
     default_summary_style: str
     default_max_words: int
@@ -46,6 +63,23 @@ def _getenv_float(name: str, default: float) -> float:
 
 def get_settings() -> Settings:
     return Settings(
+        supabase_url=os.getenv("SUPABASE_URL"),
+        supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY"),
+        supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET"),
+        supabase_storage_bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "podcasts"),
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip(
+            "/"
+        ),
+        openai_chat_model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+        openai_embed_model=os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small"),
+        openai_transcribe_model=os.getenv("OPENAI_TRANSCRIBE_MODEL", "whisper-1"),
+        openai_summary_max_tokens=_getenv_int("OPENAI_SUMMARY_MAX_TOKENS", 800),
+        celery_broker_url=os.getenv("CELERY_BROKER_URL"),
+        celery_result_backend=os.getenv("CELERY_RESULT_BACKEND"),
+        redis_url=os.getenv("REDIS_URL"),
+        rag_match_threshold=_getenv_float("RAG_MATCH_THRESHOLD", 0.2),
+        rag_match_count=_getenv_int("RAG_MATCH_COUNT", 5),
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
         dashscope_base_url=os.getenv(
             "DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"
@@ -62,6 +96,8 @@ def get_settings() -> Settings:
         max_audio_bytes=_getenv_int("MAX_AUDIO_BYTES", 200 * 1024 * 1024),
         chunk_chars=_getenv_int("SUMMARY_CHUNK_CHARS", 6000),
         chunk_overlap=_getenv_int("SUMMARY_CHUNK_OVERLAP", 300),
+        transcript_chunk_chars=_getenv_int("TRANSCRIPT_CHUNK_CHARS", 2000),
+        transcript_chunk_overlap=_getenv_int("TRANSCRIPT_CHUNK_OVERLAP", 200),
         default_language=os.getenv("SUMMARY_LANGUAGE", "zh"),
         default_summary_style=os.getenv("SUMMARY_STYLE", "bullet"),
         default_max_words=_getenv_int("SUMMARY_MAX_WORDS", 200),

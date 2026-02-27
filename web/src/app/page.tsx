@@ -1,3 +1,10 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { authorizedFetch } from "./lib/api-client";
+
 const features = [
   {
     title: "Instant episode intelligence",
@@ -61,6 +68,33 @@ const logos = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!url.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await authorizedFetch<{
+        summary_id: string;
+        episode_id: number;
+      }>("/api/podcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      router.push(`/episode/${response.episode_id}?summary_id=${response.summary_id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "提交失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <div className="mx-auto max-w-6xl px-6">
@@ -116,21 +150,27 @@ export default function Home() {
             </div>
 
             <div className="mt-10 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="flex h-11 flex-1 items-center rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-4 text-sm text-[var(--ink-muted)]">
-                  Paste a podcast link or upload audio
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {["summarize", "outline", "extract", "research"].map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[var(--border)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <form
+                onSubmit={onSubmit}
+                className="flex flex-col gap-3 md:flex-row md:items-center"
+              >
+                <input
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="Paste a podcast link"
+                  className="flex h-11 flex-1 items-center rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-4 text-sm text-[var(--ink)]"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {isSubmitting ? "提交中..." : "开始分析"}
+                </button>
+              </form>
+              {error && (
+                <div className="mt-3 text-xs text-red-500">{error}</div>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-muted)]">
                 <span>Example: "What did the guest say about RLHF safety?"</span>
                 <span className="h-1 w-1 rounded-full bg-[var(--ink-muted)]" />

@@ -6,17 +6,20 @@ from openai import OpenAI
 
 from app.config import Settings
 from app.utils.errors import ServiceError
-from app.utils.text import chunk_text
+from app.utils.text import chunk_text, extract_json
 
 
-def _iflow_chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
-    if not settings.iflow_api_key:
-        raise ServiceError("IFLOW_API_KEY is not set", status_code=501)
+def _chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
+    if not settings.openai_api_key:
+        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
 
-    client = OpenAI(base_url=settings.iflow_base_url, api_key=settings.iflow_api_key)
+    client = OpenAI(base_url=settings.openai_base_url, api_key=settings.openai_api_key)
     try:
         response = client.chat.completions.create(
-            model=settings.iflow_summary_model, messages=messages
+            model=settings.openai_chat_model,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=settings.openai_summary_max_tokens,
         )
     except Exception as exc:
         raise ServiceError(f"Summary request failed: {exc}", status_code=502) from exc
@@ -27,15 +30,11 @@ def _iflow_chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
         if content:
             return content.strip()
 
-    status = getattr(response, "status", None)
-    msg = getattr(response, "msg", None)
-    if status or msg:
-        raise ServiceError(f"Summary failed: {status} {msg}", status_code=502)
     raise ServiceError("Empty summary result", status_code=502)
 
 
-async def _iflow_chat(settings: Settings, messages: list[dict[str, str]]) -> str:
-    return await asyncio.to_thread(_iflow_chat_sync, settings, messages)
+async def _chat(settings: Settings, messages: list[dict[str, str]]) -> str:
+    return await asyncio.to_thread(_chat_sync, settings, messages)
 
 
 def _build_prompt(
@@ -66,14 +65,55 @@ async def summarize_text(
     chunks = chunk_text(text, settings.chunk_chars, settings.chunk_overlap)
     if len(chunks) == 1:
         messages = _build_prompt(chunks[0], language, style, max_words, combine=False)
-        return await _iflow_chat(settings, messages)
+        return await _chat(settings, messages)
 
     per_chunk_words = max(80, max_words // len(chunks))
     partials: list[str] = []
     for chunk in chunks:
         messages = _build_prompt(chunk, language, style, per_chunk_words, combine=False)
-        partials.append(await _iflow_chat(settings, messages))
+        partials.append(await _chat(settings, messages))
 
     combined = "\n\n".join(partials)
     messages = _build_prompt(combined, language, style, max_words, combine=True)
-    return await _iflow_chat(settings, messages)
+    return await _chat(settings, messages)
+
+
+async def summarize_structured(
+    text: str, settings: Settings, language: str, style: str
+) -> dict[str, object]:
+    source_text = text
+    if len(text) > settings.chunk_chars:
+        source_text = await summarize_text(
+            text, settings, language, style, settings.default_max_words
+        )
+    system = (
+        "You summarize podcast transcripts and return strict JSON with keys: "
+        "one_sentence_summary, summary_text, key_takeaways, action_items, mind_map_structure."
+    )
+    style_instruction = "Use bullet points." if style == "bullet" else "Use a paragraph."
+    user = (
+        f"Summarize the following transcript in {language}. {style_instruction}\n"
+        "Return JSON only.\n\nTranscript:\n"
+        f"{source_text}"
+    )
+    content = await _chat(settings, [{"role": "system", "content": system}, {"role": "user", "content": user}])
+    payload = extract_json(content) or {}
+    if not payload:
+        return {
+            "summary_text": content,
+            "one_sentence_summary": None,
+            "key_takeaways": None,
+            "action_items": None,
+            "mind_map_structure": None,
+            "summary_json": None,
+        }
+
+    summary_text = payload.get("summary_text") or payload.get("summary") or content
+    return {
+        "summary_text": summary_text,
+        "one_sentence_summary": payload.get("one_sentence_summary"),
+        "key_takeaways": payload.get("key_takeaways"),
+        "action_items": payload.get("action_items"),
+        "mind_map_structure": payload.get("mind_map_structure"),
+        "summary_json": payload,
+    }

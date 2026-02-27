@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from html.parser import HTMLParser
 import json
 import re
@@ -39,6 +40,19 @@ class _AudioMetaParser(HTMLParser):
             src = attr_map.get("src")
             if src:
                 self.audio_srcs.append(src)
+
+
+@dataclass(frozen=True)
+class EpisodeMetadata:
+    xyz_id: str
+    title: Optional[str]
+    description: Optional[str]
+    audio_url: str
+    cover_image: Optional[str]
+    duration: Optional[int]
+    audio_suffix: str
+    audio_type: str
+    language: Optional[str] = None
 
 
 def _extract_audio_url(html: str) -> Optional[str]:
@@ -125,6 +139,32 @@ def _find_audio_in_json(node: object) -> Optional[str]:
     return None
 
 
+def _extract_meta(html: str) -> dict[str, str]:
+    parser = _AudioMetaParser()
+    parser.feed(html)
+    meta: dict[str, str] = {}
+    for key, content in parser.meta:
+        if key and content:
+            meta[key] = content
+    return meta
+
+
+def _extract_xyz_id(url: str) -> str:
+    path = urlparse(url).path.strip("/")
+    if not path:
+        return url
+    parts = path.split("/")
+    return parts[-1]
+
+
+def _audio_suffix_from_url(url: str) -> str:
+    path = urlparse(url).path
+    for ext in AUDIO_EXTENSIONS:
+        if path.lower().endswith(ext):
+            return ext
+    return ".bin"
+
+
 async def resolve_audio_url(url: str, settings: Settings) -> str:
     if is_audio_url(url):
         return url
@@ -146,3 +186,70 @@ async def resolve_audio_url(url: str, settings: Settings) -> str:
         raise ServiceError("Unable to locate audio URL on the page", status_code=422)
 
     return urljoin(str(response.url), audio_url)
+
+
+async def resolve_episode_metadata(url: str, settings: Settings) -> EpisodeMetadata:
+    if is_audio_url(url):
+        audio_url = url
+        xyz_id = _extract_xyz_id(url)
+        suffix = _audio_suffix_from_url(audio_url)
+        return EpisodeMetadata(
+            xyz_id=xyz_id,
+            title=None,
+            description=None,
+            audio_url=audio_url,
+            cover_image=None,
+            duration=None,
+            audio_suffix=suffix,
+            audio_type="audio/mpeg",
+        )
+
+    headers = {"User-Agent": "podcast-to-insight/0.1"}
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.http_timeout_s, follow_redirects=True, headers=headers
+        ) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+    except httpx.RequestError as exc:
+        raise ServiceError(f"Failed to fetch page: {exc}") from exc
+    except httpx.HTTPStatusError as exc:
+        raise ServiceError(f"Audio page returned {exc.response.status_code}") from exc
+
+    html = response.text
+    audio_url = _extract_audio_url(html)
+    if not audio_url:
+        raise ServiceError("Unable to locate audio URL on the page", status_code=422)
+    audio_url = urljoin(str(response.url), audio_url)
+
+    meta = _extract_meta(html)
+    title = meta.get("og:title") or meta.get("twitter:title")
+    description = meta.get("og:description") or meta.get("description")
+    cover_image = meta.get("og:image") or meta.get("twitter:image")
+    language = meta.get("og:locale")
+    xyz_id = _extract_xyz_id(str(response.url))
+    suffix = _audio_suffix_from_url(audio_url)
+
+    content_type = "audio/mpeg"
+    if suffix == ".m4a":
+        content_type = "audio/mp4"
+    elif suffix == ".aac":
+        content_type = "audio/aac"
+    elif suffix == ".wav":
+        content_type = "audio/wav"
+    elif suffix == ".ogg":
+        content_type = "audio/ogg"
+    elif suffix == ".m3u8":
+        content_type = "application/x-mpegURL"
+
+    return EpisodeMetadata(
+        xyz_id=xyz_id,
+        title=title,
+        description=description,
+        audio_url=audio_url,
+        cover_image=cover_image,
+        duration=None,
+        audio_suffix=suffix,
+        audio_type=content_type,
+        language=language,
+    )

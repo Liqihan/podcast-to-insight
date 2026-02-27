@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from http import HTTPStatus
 import time
 from typing import Any, Optional
@@ -8,6 +9,7 @@ from typing import Any, Optional
 import dashscope
 from dashscope.audio.asr import Transcription
 import httpx
+from openai import OpenAI
 
 from app.config import Settings
 from app.utils.errors import ServiceError
@@ -110,6 +112,21 @@ def _fetch_transcription_json(url: str, settings: Settings) -> Any:
         raise ServiceError("Invalid transcription JSON", status_code=502) from exc
 
 
+@dataclass(frozen=True)
+class TranscriptSegment:
+    start: float
+    end: float
+    text: str
+
+
+@dataclass(frozen=True)
+class TranscriptResult:
+    text: str
+    segments: list[TranscriptSegment]
+    raw: Optional[dict[str, Any]]
+    duration_ms: Optional[int]
+
+
 def _transcribe_sync(audio_url: str, settings: Settings) -> str:
     if not settings.dashscope_api_key:
         raise ServiceError("DASHSCOPE_API_KEY is not set", status_code=501)
@@ -151,3 +168,59 @@ def _transcribe_sync(audio_url: str, settings: Settings) -> str:
 
 async def transcribe_audio(audio_url: str, settings: Settings) -> str:
     return await asyncio.to_thread(_transcribe_sync, audio_url, settings)
+
+
+def _transcribe_file_sync(path: str, settings: Settings) -> TranscriptResult:
+    if not settings.openai_api_key:
+        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
+
+    client = OpenAI(base_url=settings.openai_base_url, api_key=settings.openai_api_key)
+    try:
+        with open(path, "rb") as audio_file:
+            response = client.audio.transcriptions.create(
+                model=settings.openai_transcribe_model,
+                file=audio_file,
+                response_format="verbose_json",
+                timestamp_granularities=["segment"],
+            )
+    except Exception as exc:
+        raise ServiceError(f"Transcription request failed: {exc}", status_code=502) from exc
+
+    raw: Optional[dict[str, Any]]
+    if hasattr(response, "model_dump"):
+        raw = response.model_dump()
+    elif hasattr(response, "dict"):
+        raw = response.dict()
+    else:
+        raw = None
+
+    text = getattr(response, "text", None)
+    segments_data = getattr(response, "segments", None)
+    segments: list[TranscriptSegment] = []
+    if isinstance(segments_data, list):
+        for segment in segments_data:
+            if isinstance(segment, dict):
+                start = float(segment.get("start", 0))
+                end = float(segment.get("end", 0))
+                seg_text = str(segment.get("text", "")).strip()
+            else:
+                start = float(getattr(segment, "start", 0))
+                end = float(getattr(segment, "end", 0))
+                seg_text = str(getattr(segment, "text", "")).strip()
+            if seg_text:
+                segments.append(TranscriptSegment(start=start, end=end, text=seg_text))
+
+    if not text and segments:
+        text = " ".join(segment.text for segment in segments)
+    if not text:
+        raise ServiceError("Empty transcription result", status_code=502)
+
+    duration_ms = None
+    if segments:
+        duration_ms = int(max(seg.end for seg in segments) * 1000)
+
+    return TranscriptResult(text=text.strip(), segments=segments, raw=raw, duration_ms=duration_ms)
+
+
+async def transcribe_file(path: str, settings: Settings) -> TranscriptResult:
+    return await asyncio.to_thread(_transcribe_file_sync, path, settings)
