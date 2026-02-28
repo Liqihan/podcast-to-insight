@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import Depends, FastAPI, HTTPException, Request
+import uuid
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
@@ -18,6 +21,7 @@ from app.schemas import (
 )
 from app.services.chat import generate_rag_answer
 from app.services.download import convert_audio_to_mp3, download_audio
+from app.services.pipeline import run_pipeline
 from app.services.resolve import resolve_audio_url, resolve_episode_metadata
 from app.services.summarize import summarize_text
 from app.services.supabase_service import (
@@ -116,22 +120,30 @@ async def process_episode(
         else:
             update_episode(client, episode["id"], episode_payload)
 
+        user_id = None if settings.auth_disabled else user.id
         summary = insert_summary(
             client,
             {
                 "episode_id": episode["id"],
-                "user_id": user.id,
+                **({"user_id": user_id} if user_id else {}),
                 "status": "pending",
             },
         )
-        task = process_episode_task.delay(
-            summary["id"], episode["id"], user.id, str(request.url)
-        )
+        if settings.auth_disabled or not settings.celery_broker_url:
+            asyncio.create_task(
+                run_pipeline(settings, summary["id"], episode["id"], str(request.url))
+            )
+            task_id = "local"
+        else:
+            task = process_episode_task.delay(
+                summary["id"], episode["id"], user_id or "", str(request.url)
+            )
+            task_id = task.id
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     return ProcessResponse(
-        task_id=task.id, summary_id=summary["id"], episode_id=episode["id"]
+        task_id=task_id, summary_id=summary["id"], episode_id=episode["id"]
     )
 
 
@@ -157,9 +169,14 @@ async def summary_status(
     summary_id: str, user: UserContext = Depends(get_current_user)
 ) -> StatusResponse:
     settings = get_settings()
+    summary_id = summary_id.strip().rstrip("/")
+    try:
+        uuid.UUID(summary_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid summary_id")
     client = get_supabase_client(settings)
     summary = fetch_summary(client, summary_id)
-    if not summary or summary.get("user_id") != user.id:
+    if not summary or (not settings.auth_disabled and summary.get("user_id") != user.id):
         raise HTTPException(status_code=404, detail="Summary not found")
     return StatusResponse(
         summary_id=summary_id,
@@ -177,7 +194,8 @@ async def episode_detail(
     episode = fetch_episode(client, episode_id)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
-    summary = fetch_latest_summary_for_episode(client, episode_id, user.id)
+    summary_user_id = None if settings.auth_disabled else user.id
+    summary = fetch_latest_summary_for_episode(client, episode_id, summary_user_id)
     episode["summary"] = summary
     return EpisodeResponse.model_validate(episode)
 
@@ -188,7 +206,10 @@ async def user_episodes(
 ) -> list[UserEpisodeItem]:
     settings = get_settings()
     client = get_supabase_client(settings)
-    rows = list_user_episodes(client, user.id)
+    if settings.auth_disabled:
+        rows = list_user_episodes(client, "00000000-0000-0000-0000-000000000000")
+    else:
+        rows = list_user_episodes(client, user.id)
     items: list[UserEpisodeItem] = []
     for row in rows:
         episode_data = row.get("episode") or {}

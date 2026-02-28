@@ -6,8 +6,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { summaryId: string } }
 ) {
+  const pathId = request.nextUrl.pathname.split("/").filter(Boolean).pop();
+  const summaryId = (params.summaryId || pathId || "").trim().replace(/\/+$/, "");
   const auth = request.headers.get("authorization");
-  const response = await fetch(`${API_BASE}/api/v1/status/${params.summaryId}`, {
+  const response = await fetch(`${API_BASE}/api/v1/status/${summaryId}`, {
     headers: {
       ...(auth ? { Authorization: auth } : {}),
     },

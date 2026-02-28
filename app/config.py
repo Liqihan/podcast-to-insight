@@ -48,6 +48,33 @@ class Settings:
     default_language: str
     default_summary_style: str
     default_max_words: int
+    auth_disabled: bool
+
+
+_ENV_LOADED = False
+
+
+def _load_env_file() -> None:
+    global _ENV_LOADED
+    if _ENV_LOADED:
+        return
+    _ENV_LOADED = True
+    env_path = os.getenv("ENV_FILE", ".env")
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip("'").strip('"')
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except OSError:
+        return
 
 
 def _getenv_int(name: str, default: int) -> int:
@@ -71,6 +98,8 @@ def _getenv_float(name: str, default: float) -> float:
 
 
 def get_settings() -> Settings:
+    _load_env_file()
+    dashscope_key = os.getenv("DASHSCOPE_API_KEY")
     bailian_transcribe_model = os.getenv("BAILIAN_TRANSCRIBE_MODEL")
     if not bailian_transcribe_model:
         bailian_transcribe_model = os.getenv("BAILIAN_ASR_MODEL", "paraformer-realtime-v2")
@@ -79,13 +108,13 @@ def get_settings() -> Settings:
         supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY"),
         supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET"),
         supabase_storage_bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "podcasts"),
-        bailian_api_key=os.getenv("BAILIAN_API_KEY"),
+        bailian_api_key=os.getenv("BAILIAN_API_KEY") or dashscope_key,
         bailian_base_url=os.getenv("BAILIAN_BASE_URL", "https://bailian.aliyuncs.com/v1").rstrip(
             "/"
         ),
         bailian_chat_model=os.getenv("BAILIAN_CHAT_MODEL", "qwen-plus"),
         bailian_transcribe_model=bailian_transcribe_model,
-        bailian_asr_api_key=os.getenv("BAILIAN_ASR_API_KEY"),
+        bailian_asr_api_key=os.getenv("BAILIAN_ASR_API_KEY") or dashscope_key,
         bailian_asr_base_url=os.getenv(
             "BAILIAN_ASR_BASE_URL", "https://nls-gateway-cn-shanghai.aliyuncs.com"
         ).rstrip("/"),
@@ -126,4 +155,5 @@ def get_settings() -> Settings:
         default_language=os.getenv("SUMMARY_LANGUAGE", "zh"),
         default_summary_style=os.getenv("SUMMARY_STYLE", "bullet"),
         default_max_words=_getenv_int("SUMMARY_MAX_WORDS", 200),
+        auth_disabled=os.getenv("AUTH_DISABLED", "0").lower() in ("1", "true", "yes"),
     )

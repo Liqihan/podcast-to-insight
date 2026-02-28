@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Any
 
 from supabase import Client, create_client
+import uuid
 
 from app.config import Settings, get_settings
 from app.utils.errors import ServiceError
@@ -39,6 +40,14 @@ def update_episode(client: Client, episode_id: int, payload: dict[str, Any]) -> 
 
 
 def insert_summary(client: Client, payload: dict[str, Any]) -> dict[str, Any]:
+    user_id = payload.get("user_id")
+    if not user_id or user_id == "00000000-0000-0000-0000-000000000000":
+        payload.pop("user_id", None)
+    else:
+        try:
+            uuid.UUID(str(user_id))
+        except (ValueError, TypeError):
+            payload.pop("user_id", None)
     response = client.table("summaries").insert(payload).execute()
     data = response.data or []
     if not data:

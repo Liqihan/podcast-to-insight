@@ -33,6 +33,10 @@ Optional environment variables:
 - `SUMMARY_STYLE` (default: `bullet`)
 - `SUMMARY_MAX_WORDS` (default: `200`)
 
+Notes:
+- If `BAILIAN_API_KEY` is not set, the service will fall back to `DASHSCOPE_API_KEY`.
+- If `BAILIAN_ASR_API_KEY` is not set, the service will fall back to `DASHSCOPE_API_KEY`.
+
 ## 启动
 
 后端（FastAPI，默认 `http://localhost:8000`）：

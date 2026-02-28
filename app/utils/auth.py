@@ -20,6 +20,8 @@ def get_current_user(
     authorization: Optional[str] = Header(default=None),
     settings: Settings = Depends(get_settings),
 ) -> UserContext:
+    if settings.auth_disabled:
+        return UserContext(id="00000000-0000-0000-0000-000000000000")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.split(" ", 1)[1].strip()

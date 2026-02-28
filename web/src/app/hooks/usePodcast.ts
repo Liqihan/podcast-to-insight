@@ -3,8 +3,11 @@ import useSWR from "swr";
 import { authorizedFetch } from "../lib/api-client";
 
 export function usePodcast(episodeId?: string, summaryId?: string) {
+  const normalizedSummaryId =
+    summaryId && summaryId !== "undefined" && summaryId !== "null" ? summaryId : undefined;
+
   const { data: status, error: statusError } = useSWR(
-    summaryId ? `/api/podcast/status/${summaryId}` : null,
+    normalizedSummaryId ? `/api/podcast/status/${normalizedSummaryId}` : null,
     (url: string) => authorizedFetch(url),
     { refreshInterval: 3000 }
   );
