@@ -11,6 +11,15 @@ class Settings:
     supabase_service_key: Optional[str]
     supabase_jwt_secret: Optional[str]
     supabase_storage_bucket: str
+    bailian_api_key: Optional[str]
+    bailian_base_url: str
+    bailian_chat_model: str
+    bailian_transcribe_model: str
+    bailian_asr_api_key: Optional[str]
+    bailian_asr_base_url: str
+    bailian_asr_model: str
+    bailian_poll_interval_s: float
+    bailian_poll_timeout_s: float
     openai_api_key: Optional[str]
     openai_base_url: str
     openai_chat_model: str
@@ -62,11 +71,27 @@ def _getenv_float(name: str, default: float) -> float:
 
 
 def get_settings() -> Settings:
+    bailian_transcribe_model = os.getenv("BAILIAN_TRANSCRIBE_MODEL")
+    if not bailian_transcribe_model:
+        bailian_transcribe_model = os.getenv("BAILIAN_ASR_MODEL", "paraformer-realtime-v2")
     return Settings(
         supabase_url=os.getenv("SUPABASE_URL"),
         supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY"),
         supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET"),
         supabase_storage_bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "podcasts"),
+        bailian_api_key=os.getenv("BAILIAN_API_KEY"),
+        bailian_base_url=os.getenv("BAILIAN_BASE_URL", "https://bailian.aliyuncs.com/v1").rstrip(
+            "/"
+        ),
+        bailian_chat_model=os.getenv("BAILIAN_CHAT_MODEL", "qwen-plus"),
+        bailian_transcribe_model=bailian_transcribe_model,
+        bailian_asr_api_key=os.getenv("BAILIAN_ASR_API_KEY"),
+        bailian_asr_base_url=os.getenv(
+            "BAILIAN_ASR_BASE_URL", "https://nls-gateway-cn-shanghai.aliyuncs.com"
+        ).rstrip("/"),
+        bailian_asr_model=os.getenv("BAILIAN_ASR_MODEL", "paraformer-realtime-v2"),
+        bailian_poll_interval_s=_getenv_float("BAILIAN_POLL_INTERVAL_S", 2.0),
+        bailian_poll_timeout_s=_getenv_float("BAILIAN_POLL_TIMEOUT_S", 900.0),
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip(
             "/"

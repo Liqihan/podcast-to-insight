@@ -133,8 +133,8 @@ async def run_pipeline(
                 "transcript_text_url": text_url,
                 "transcript_json_url": json_url,
                 "transcript_duration_ms": transcript.duration_ms,
-                "asr_model": settings.openai_transcribe_model,
-                "summary_model": settings.openai_chat_model,
+                "asr_model": settings.bailian_transcribe_model,
+                "summary_model": settings.bailian_chat_model,
                 "language": metadata.language or settings.default_language,
                 "summary_style": settings.default_summary_style,
             }
