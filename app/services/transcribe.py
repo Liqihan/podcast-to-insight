@@ -6,8 +6,8 @@ from http import HTTPStatus
 import time
 from typing import Any, Optional
 
-import dashscope
-from dashscope.audio.asr import Transcription
+import json
+import oss2
 import httpx
 from openai import OpenAI
 
@@ -128,42 +128,39 @@ class TranscriptResult:
 
 
 def _transcribe_sync(audio_url: str, settings: Settings) -> str:
-    if not settings.dashscope_api_key:
-        raise ServiceError("DASHSCOPE_API_KEY is not set", status_code=501)
-
-    dashscope.base_http_api_url = settings.dashscope_base_url
-    dashscope.api_key = settings.dashscope_api_key
-
-    response = Transcription.async_call(
-        model=settings.dashscope_asr_model, file_urls=[audio_url]
+    if not settings.bailian_asr_api_key:
+        raise ServiceError("BAILIAN_ASR_API_KEY is not set", status_code=501)
+    
+    # 使用阿里云智能语音交互API替代DashScope
+    from alibabacloud_nlsapi20190228.client import Client as NlsClient
+    from alibabacloud_tea_openapi import models as open_api_models
+    from alibabacloud_nlsapi20190228 import models as nls_models
+    
+    config = open_api_models.Config(
+        access_key_id=settings.bailian_asr_api_key,
+        access_key_secret=settings.bailian_asr_api_key,  # 通常使用AccessKey Secret，这里简化处理
+        endpoint=settings.bailian_asr_base_url
     )
-    start = time.time()
-
-    while True:
-        status = response.output.task_status
-        if status in ("SUCCEEDED", "FAILED"):
-            break
-        if time.time() - start > settings.dashscope_poll_timeout_s:
-            raise ServiceError("Transcription timed out", status_code=504)
-        time.sleep(settings.dashscope_poll_interval_s)
-        response = Transcription.fetch(task=response.output.task_id)
-
-    if response.status_code != HTTPStatus.OK:
-        raise ServiceError(
-            f"Transcription failed: {response.code} {response.message}",
-            status_code=502,
-        )
-
-    output = response.output
-    transcript = _extract_transcript(output)
-    if not transcript:
-        transcription_url = _find_transcription_url(output)
-        if transcription_url:
-            data = _fetch_transcription_json(transcription_url, settings)
-            transcript = _extract_transcript(data)
-    if not transcript:
-        raise ServiceError("Empty transcription result", status_code=502)
-    return transcript.strip()
+    
+    client = NlsClient(config)
+    
+    # 发起同步语音识别请求
+    request = nls_models.SpeechTranscriberRequest(
+        app_key="speechrecognition",
+        format="mp3",  # 可能需要根据实际音频格式调整
+        sample_rate=16000,
+        enable_inverse_text_normalization=True,
+        enable_voice_detection=True,
+    )
+    
+    try:
+        response = client.speech_transcriber(request, audio_url)
+        result = response.body.result
+        if not result:
+            raise ServiceError("Empty transcription result", status_code=502)
+        return result
+    except Exception as e:
+        raise ServiceError(f"Transcription failed: {str(e)}", status_code=502)
 
 
 async def transcribe_audio(audio_url: str, settings: Settings) -> str:
@@ -171,14 +168,14 @@ async def transcribe_audio(audio_url: str, settings: Settings) -> str:
 
 
 def _transcribe_file_sync(path: str, settings: Settings) -> TranscriptResult:
-    if not settings.openai_api_key:
-        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
+    if not settings.bailian_api_key:
+        raise ServiceError("BAILIAN_API_KEY is not set", status_code=501)
 
-    client = OpenAI(base_url=settings.openai_base_url, api_key=settings.openai_api_key)
+    client = OpenAI(base_url=settings.bailian_base_url, api_key=settings.bailian_api_key)
     try:
         with open(path, "rb") as audio_file:
             response = client.audio.transcriptions.create(
-                model=settings.openai_transcribe_model,
+                model=settings.bailian_transcribe_model,
                 file=audio_file,
                 response_format="verbose_json",
                 timestamp_granularities=["segment"],

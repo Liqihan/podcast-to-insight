@@ -10,13 +10,13 @@ from app.utils.text import chunk_text, extract_json
 
 
 def _chat_sync(settings: Settings, messages: list[dict[str, str]]) -> str:
-    if not settings.openai_api_key:
-        raise ServiceError("OPENAI_API_KEY is not set", status_code=501)
+    if not settings.bailian_api_key:
+        raise ServiceError("BAILIAN_API_KEY is not set", status_code=501)
 
-    client = OpenAI(base_url=settings.openai_base_url, api_key=settings.openai_api_key)
+    client = OpenAI(base_url=settings.bailian_base_url, api_key=settings.bailian_api_key)
     try:
         response = client.chat.completions.create(
-            model=settings.openai_chat_model,
+            model=settings.bailian_chat_model,
             messages=messages,
             temperature=0.3,
             max_tokens=settings.openai_summary_max_tokens,

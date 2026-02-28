@@ -5,8 +5,8 @@ FastAPI backend that turns a Xiaoyuzhou episode page (or direct audio URL) into 
 ## Requirements
 
 - Python 3.10+
-- DashScope API key for transcription
-- iFlow API key for summarization (OpenAI-compatible)
+- 百炼(Bailian) API key for both transcription and summarization
+- 阿里云语音识别服务API key for ASR functionality
 
 ## Setup
 
@@ -14,18 +14,18 @@ FastAPI backend that turns a Xiaoyuzhou episode page (or direct audio URL) into 
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export DASHSCOPE_API_KEY="your_dashscope_key"
-export IFLOW_API_KEY="your_iflow_key"
+export BAILIAN_API_KEY="your_bailian_key"
+export BAILIAN_ASR_API_KEY="your_bailian_asr_key"
 ```
 
 Optional environment variables:
 
-- `DASHSCOPE_BASE_URL` (default: `https://dashscope.aliyuncs.com/api/v1`)
-- `DASHSCOPE_ASR_MODEL` (default: `fun-asr`)
-- `IFLOW_BASE_URL` (default: `https://apis.iflow.cn/v1`)
-- `IFLOW_SUMMARY_MODEL` (default: `TBStars2-200B-A13B`)
-- `DASHSCOPE_POLL_INTERVAL_S` (default: `2.0`)
-- `DASHSCOPE_POLL_TIMEOUT_S` (default: `900.0`)
+- `BAILIAN_BASE_URL` (default: `https://bailian.aliyuncs.com/v1`)
+- `BAILIAN_CHAT_MODEL` (default: `qwen-plus`)
+- `BAILIAN_ASR_BASE_URL` (default: `https://nls-gateway-cn-shanghai.aliyuncs.com`)
+- `BAILIAN_ASR_MODEL` (default: `paraformer-realtime-v2`)
+- `BAILIAN_POLL_INTERVAL_S` (default: `2.0`)
+- `BAILIAN_POLL_TIMEOUT_S` (default: `900.0`)
 - `MAX_AUDIO_BYTES` (default: `209715200`)
 - `SUMMARY_CHUNK_CHARS` (default: `6000`)
 - `SUMMARY_CHUNK_OVERLAP` (default: `300`)
