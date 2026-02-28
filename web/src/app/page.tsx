@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { authorizedFetch } from "./lib/api-client";
 import ThemeSwitcher from "./components/ThemeSwitcher";
@@ -50,11 +51,62 @@ const press = [
   },
 ];
 
+type FeaturedEpisodeSummary = {
+  id: string;
+  summary_text?: string | null;
+  one_sentence_summary?: string | null;
+  created_at?: string | null;
+};
+
+type FeaturedEpisode = {
+  id: number;
+  title?: string | null;
+  description?: string | null;
+  cover_image?: string | null;
+  duration?: number | null;
+  summary?: FeaturedEpisodeSummary | null;
+};
+
+type FeaturedResponse = {
+  latest: FeaturedEpisode[];
+  hot: FeaturedEpisode[];
+};
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "未知日期";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "未知日期";
+  return parsed.toLocaleDateString("zh-CN", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const formatDuration = (value?: number | null) => {
+  if (!value || value <= 0) return null;
+  const minutes = Math.max(1, Math.round(value / 60));
+  return `${minutes} 分钟`;
+};
+
+const buildSnippet = (episode: FeaturedEpisode) => {
+  const text =
+    episode.summary?.one_sentence_summary ??
+    episode.summary?.summary_text ??
+    episode.description ??
+    "";
+  const clean = text.trim();
+  if (!clean) return "暂无摘要";
+  return clean.length > 120 ? `${clean.slice(0, 120)}...` : clean;
+};
+
 export default function Home() {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [featured, setFeatured] = useState<FeaturedResponse>({ latest: [], hot: [] });
+  const [featuredError, setFeaturedError] = useState<string | null>(null);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -77,6 +129,44 @@ export default function Home() {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadFeatured = async () => {
+      setFeaturedLoading(true);
+      setFeaturedError(null);
+      try {
+        const response = await fetch("/api/podcast/featured?limit=6");
+        const payload = await response.text();
+        if (!response.ok) {
+          let detail = "加载失败";
+          try {
+            const data = JSON.parse(payload) as { detail?: string };
+            detail = data.detail ?? detail;
+          } catch {
+            detail = payload || detail;
+          }
+          throw new Error(detail);
+        }
+        const data = (payload ? JSON.parse(payload) : { latest: [], hot: [] }) as FeaturedResponse;
+        if (isMounted) {
+          setFeatured(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setFeaturedError(err instanceof Error ? err.message : "加载失败");
+        }
+      } finally {
+        if (isMounted) {
+          setFeaturedLoading(false);
+        }
+      }
+    };
+    loadFeatured();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
@@ -197,6 +287,166 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="mt-24">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
+            / 精选摘要
+          </div>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl font-display">
+              最新与最热的节目摘要。
+            </h2>
+            <button className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold text-[var(--ink)]">
+              查看全部
+            </button>
+          </div>
+          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">
+            从最新上线到最受欢迎的内容，快速浏览已经生成摘要的音频。
+          </p>
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">最新摘要</h3>
+                <span className="text-xs text-[var(--ink-muted)]">
+                  {featuredLoading ? "加载中..." : `${featured.latest.length} 条`}
+                </span>
+              </div>
+              <div className="mt-5 space-y-4">
+                {featuredLoading &&
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={`latest-skeleton-${index}`} className="flex gap-4">
+                      <div className="h-14 w-14 rounded-2xl bg-[var(--bg-muted)]" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
+                        <div className="h-3 w-full rounded bg-[var(--bg-muted)]" />
+                      </div>
+                    </div>
+                  ))}
+                {!featuredLoading &&
+                  featured.latest.map((episode) => {
+                    const summaryId = episode.summary?.id;
+                    const href = summaryId
+                      ? `/episode/${episode.id}?summary_id=${summaryId}`
+                      : `/episode/${episode.id}`;
+                    return (
+                      <Link
+                        key={`latest-${episode.id}`}
+                        href={href}
+                        className="group flex gap-4 rounded-2xl border border-transparent p-2 transition hover:border-[var(--border)] hover:bg-[var(--bg-muted)]"
+                      >
+                        <div className="h-14 w-14 overflow-hidden rounded-2xl bg-[var(--bg-muted)]">
+                          {episode.cover_image ? (
+                            <div
+                              className="h-full w-full bg-cover bg-center"
+                              style={{ backgroundImage: `url(${episode.cover_image})` }}
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[var(--ink-muted)]">
+                              POD
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-[var(--ink)] group-hover:text-black dark:group-hover:text-white">
+                              {episode.title ?? "未命名节目"}
+                            </p>
+                            <span className="text-xs text-[var(--ink-muted)]">
+                              {formatDate(episode.summary?.created_at)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                            {buildSnippet(episode)}
+                          </p>
+                          <div className="mt-3 flex items-center gap-3 text-xs text-[var(--ink-muted)]">
+                            {formatDuration(episode.duration) && (
+                              <span>{formatDuration(episode.duration)}</span>
+                            )}
+                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">
+                              最新
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                {!featuredLoading && featured.latest.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--ink-muted)]">
+                    暂无最新摘要，请先生成节目摘要。
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">最热摘要</h3>
+                <span className="text-xs text-[var(--ink-muted)]">
+                  {featuredLoading ? "加载中..." : `${featured.hot.length} 条`}
+                </span>
+              </div>
+              <div className="mt-5 space-y-4">
+                {featuredLoading &&
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={`hot-skeleton-${index}`} className="flex gap-4">
+                      <div className="h-14 w-14 rounded-2xl bg-[var(--bg-muted)]" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-2/3 rounded bg-[var(--bg-muted)]" />
+                        <div className="h-3 w-full rounded bg-[var(--bg-muted)]" />
+                      </div>
+                    </div>
+                  ))}
+                {!featuredLoading &&
+                  featured.hot.map((episode, index) => {
+                    const summaryId = episode.summary?.id;
+                    const href = summaryId
+                      ? `/episode/${episode.id}?summary_id=${summaryId}`
+                      : `/episode/${episode.id}`;
+                    return (
+                      <Link
+                        key={`hot-${episode.id}`}
+                        href={href}
+                        className="group flex gap-4 rounded-2xl border border-transparent p-2 transition hover:border-[var(--border)] hover:bg-[var(--bg-muted)]"
+                      >
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-muted)] text-xs font-semibold">
+                          #{index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-[var(--ink)] group-hover:text-black dark:group-hover:text-white">
+                              {episode.title ?? "未命名节目"}
+                            </p>
+                            <span className="text-xs text-[var(--ink-muted)]">
+                              {formatDate(episode.summary?.created_at)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                            {buildSnippet(episode)}
+                          </p>
+                          <div className="mt-3 flex items-center gap-3 text-xs text-[var(--ink-muted)]">
+                            {formatDuration(episode.duration) && (
+                              <span>{formatDuration(episode.duration)}</span>
+                            )}
+                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">
+                              最热
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                {!featuredLoading && featured.hot.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--ink-muted)]">
+                    暂无最热摘要，请先生成节目摘要。
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {featuredError && <div className="mt-4 text-xs text-red-500">{featuredError}</div>}
         </section>
 
         <section className="mt-24 rounded-3xl border border-[var(--border)] bg-[var(--panel)] p-10">

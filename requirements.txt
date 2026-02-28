@@ -8,3 +8,4 @@ celery>=5.3
 redis>=5.0
 supabase>=2.6
 PyJWT>=2.8
+oss2>=2.18.0

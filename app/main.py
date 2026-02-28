@@ -8,6 +8,7 @@ from app.schemas import (
     ChatRequest,
     ChatResponse,
     EpisodeResponse,
+    FeaturedEpisodesResponse,
     ProcessRequest,
     ProcessResponse,
     StatusResponse,
@@ -24,6 +25,7 @@ from app.services.supabase_service import (
     fetch_episode_by_xyz_id,
     fetch_latest_summary_for_episode,
     fetch_summary,
+    fetch_completed_summaries_with_episodes,
     get_supabase_client,
     insert_episode,
     insert_summary,
@@ -202,3 +204,89 @@ async def user_episodes(
             )
         )
     return items
+
+
+@app.get("/api/v1/episodes/featured", response_model=FeaturedEpisodesResponse)
+async def featured_episodes(limit: int = 6) -> FeaturedEpisodesResponse:
+    limit = max(1, min(20, int(limit)))
+    scan_limit = max(limit * 20, 100)
+    scan_limit = min(scan_limit, 500)
+
+    settings = get_settings()
+    client = get_supabase_client(settings)
+    rows = fetch_completed_summaries_with_episodes(client, scan_limit)
+
+    latest: list[EpisodeResponse] = []
+    latest_seen: set[int] = set()
+
+    counts: dict[int, int] = {}
+    latest_row_by_episode: dict[int, dict] = {}
+    latest_index_by_episode: dict[int, int] = {}
+
+    for idx, row in enumerate(rows):
+        episode_id = row.get("episode_id")
+        if not episode_id:
+            continue
+        counts[episode_id] = counts.get(episode_id, 0) + 1
+        if episode_id not in latest_row_by_episode:
+            latest_row_by_episode[episode_id] = row
+            latest_index_by_episode[episode_id] = idx
+
+        if episode_id in latest_seen:
+            continue
+        episode = row.get("episode") or {}
+        if not episode:
+            continue
+        summary_payload = {
+            "id": row.get("id"),
+            "status": row.get("status"),
+            "summary_text": row.get("summary_text"),
+            "one_sentence_summary": row.get("one_sentence_summary"),
+            "key_takeaways": row.get("key_takeaways"),
+            "action_items": row.get("action_items"),
+            "mind_map_structure": row.get("mind_map_structure"),
+            "transcript_text_url": row.get("transcript_text_url"),
+            "transcript_json_url": row.get("transcript_json_url"),
+            "created_at": row.get("created_at"),
+        }
+        episode_payload = dict(episode)
+        episode_payload["summary"] = summary_payload
+        latest.append(EpisodeResponse.model_validate(episode_payload))
+        latest_seen.add(episode_id)
+        if len(latest) >= limit:
+            break
+
+    hot_ids = sorted(
+        counts.keys(),
+        key=lambda episode_id: (
+            -counts[episode_id],
+            latest_index_by_episode.get(episode_id, 10**9),
+        ),
+    )
+    hot: list[EpisodeResponse] = []
+    for episode_id in hot_ids:
+        row = latest_row_by_episode.get(episode_id)
+        if not row:
+            continue
+        episode = row.get("episode") or {}
+        if not episode:
+            continue
+        summary_payload = {
+            "id": row.get("id"),
+            "status": row.get("status"),
+            "summary_text": row.get("summary_text"),
+            "one_sentence_summary": row.get("one_sentence_summary"),
+            "key_takeaways": row.get("key_takeaways"),
+            "action_items": row.get("action_items"),
+            "mind_map_structure": row.get("mind_map_structure"),
+            "transcript_text_url": row.get("transcript_text_url"),
+            "transcript_json_url": row.get("transcript_json_url"),
+            "created_at": row.get("created_at"),
+        }
+        episode_payload = dict(episode)
+        episode_payload["summary"] = summary_payload
+        hot.append(EpisodeResponse.model_validate(episode_payload))
+        if len(hot) >= limit:
+            break
+
+    return FeaturedEpisodesResponse(latest=latest, hot=hot)

@@ -21,15 +21,19 @@ export async function authorizedFetch<T>(
     ...options,
     headers,
   });
+  const payload = await response.text();
   if (!response.ok) {
     let detail = "Request failed";
     try {
-      const data = await response.json();
-      detail = (data as { detail?: string }).detail ?? detail;
+      const data = JSON.parse(payload) as { detail?: string };
+      detail = data.detail ?? detail;
     } catch {
-      detail = await response.text();
+      detail = payload || detail;
     }
     throw new Error(detail || "Request failed");
   }
-  return response.json() as Promise<T>;
+  if (!payload) {
+    return {} as T;
+  }
+  return JSON.parse(payload) as T;
 }

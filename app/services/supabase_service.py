@@ -112,3 +112,22 @@ def match_podcast_chunks(
         },
     ).execute()
     return response.data or []
+
+
+def fetch_completed_summaries_with_episodes(
+    client: Client, limit: int
+) -> list[dict[str, Any]]:
+    response = (
+        client.table("summaries")
+        .select(
+            "id,episode_id,status,summary_text,one_sentence_summary,key_takeaways,"
+            "action_items,mind_map_structure,transcript_text_url,transcript_json_url,"
+            "created_at,episode:episodes(id,xyz_id,title,description,audio_url,"
+            "storage_path,cover_image,duration,created_at)"
+        )
+        .eq("status", "completed")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return response.data or []

@@ -90,3 +90,8 @@ class UserEpisodeItem(BaseModel):
     summary_text: Optional[str] = None
     key_takeaways: Optional[list[str]] = None
     episode: EpisodeResponse
+
+
+class FeaturedEpisodesResponse(BaseModel):
+    latest: list[EpisodeResponse]
+    hot: list[EpisodeResponse]
