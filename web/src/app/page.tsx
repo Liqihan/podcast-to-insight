@@ -107,6 +107,8 @@ export default function Home() {
   const [featured, setFeatured] = useState<FeaturedResponse>({ latest: [], hot: [] });
   const [featuredError, setFeaturedError] = useState<string | null>(null);
   const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"new" | "top" | "liked">("top");
+  const [timeFilter, setTimeFilter] = useState<"30d" | "all">("30d");
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -167,6 +169,15 @@ export default function Home() {
       isMounted = false;
     };
   }, []);
+
+  const featuredList =
+    activeTab === "top" ? featured.hot : activeTab === "new" ? featured.latest : [];
+  const totalPods = featuredList.length;
+  const totalSeconds = featuredList.reduce(
+    (sum, item) => sum + (item.duration ? Math.max(0, item.duration) : 0),
+    0
+  );
+  const totalHours = totalSeconds > 0 ? Math.round(totalSeconds / 3600) : 0;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
@@ -290,160 +301,134 @@ export default function Home() {
         </section>
 
         <section className="mt-24">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-            / 精选摘要
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-[var(--ink-muted)]">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setActiveTab("new")}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "new"
+                    ? "bg-[var(--panel)] text-[var(--ink)] shadow-sm"
+                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                }`}
+              >
+                <span className="text-base">#</span>
+                New
+              </button>
+              <button
+                onClick={() => setActiveTab("top")}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "top"
+                    ? "bg-[var(--panel)] text-[var(--ink)] shadow-sm"
+                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                }`}
+              >
+                <span className="text-base">^</span>
+                Top
+              </button>
+              <button
+                onClick={() => setActiveTab("liked")}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "liked"
+                    ? "bg-[var(--panel)] text-[var(--ink)] shadow-sm"
+                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                }`}
+              >
+                <span className="text-base">♡</span>
+                Liked
+              </button>
+            </div>
+            <div className="flex items-center gap-6 text-xs uppercase tracking-[0.2em]">
+              <span>{featuredLoading ? "--" : `${totalPods} PODS`}</span>
+              <span>{featuredLoading ? "--" : `${totalHours} HRS`}</span>
+            </div>
           </div>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl font-display">
-              最新与最热的节目摘要。
-            </h2>
-            <button className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold text-[var(--ink)]">
-              查看全部
-            </button>
-          </div>
-          <p className="mt-4 max-w-2xl text-[var(--ink-muted)]">
-            从最新上线到最受欢迎的内容，快速浏览已经生成摘要的音频。
-          </p>
+          <div className="mt-4 h-px w-full bg-[var(--border)]" />
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">最新摘要</h3>
-                <span className="text-xs text-[var(--ink-muted)]">
-                  {featuredLoading ? "加载中..." : `${featured.latest.length} 条`}
-                </span>
-              </div>
-              <div className="mt-5 space-y-4">
-                {featuredLoading &&
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <div key={`latest-skeleton-${index}`} className="flex gap-4">
-                      <div className="h-14 w-14 rounded-2xl bg-[var(--bg-muted)]" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
-                        <div className="h-3 w-full rounded bg-[var(--bg-muted)]" />
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl font-semibold">
+                {activeTab === "top" ? "Top" : activeTab === "new" ? "New" : "Liked"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <button
+                onClick={() => setTimeFilter("30d")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  timeFilter === "30d"
+                    ? "bg-[var(--accent)] text-white"
+                    : "border border-[var(--border)] text-[var(--ink)]"
+                }`}
+              >
+                近30天
+              </button>
+              <button
+                onClick={() => setTimeFilter("all")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  timeFilter === "all"
+                    ? "bg-[var(--accent)] text-white"
+                    : "border border-[var(--border)] text-[var(--ink)]"
+                }`}
+              >
+                全量Top 10
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            {featuredLoading &&
+              Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`featured-skeleton-${index}`}
+                  className="relative h-56 rounded-3xl border border-[var(--border)] bg-[var(--panel)] p-6"
+                >
+                  <div className="h-7 w-20 rounded-full bg-[var(--bg-muted)]" />
+                  <div className="mt-6 h-5 w-4/5 rounded bg-[var(--bg-muted)]" />
+                  <div className="mt-3 h-4 w-3/5 rounded bg-[var(--bg-muted)]" />
+                </div>
+              ))}
+            {!featuredLoading &&
+              featuredList.map((episode, index) => {
+                const summaryId = episode.summary?.id;
+                const href = summaryId
+                  ? `/episode/${episode.id}?summary_id=${summaryId}`
+                  : `/episode/${episode.id}`;
+                return (
+                  <Link
+                    key={`${activeTab}-${episode.id}`}
+                    href={href}
+                    className="group relative overflow-hidden rounded-3xl border border-transparent bg-[var(--panel)] p-6 shadow-[0_24px_60px_rgba(20,20,20,0.06)] transition hover:-translate-y-1 hover:border-orange-400"
+                  >
+                    <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
+                      <span className="rounded-lg border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-semibold">
+                        #{activeTab === "top" ? "Top" : activeTab === "new" ? "New" : "Liked"}
+                      </span>
+                      <span>{formatDate(episode.summary?.created_at)}</span>
+                    </div>
+                    <h3 className="mt-6 text-lg font-semibold text-[var(--ink)]">
+                      {episode.title ?? "未命名节目"}
+                    </h3>
+                    <p className="mt-3 text-sm text-[var(--ink-muted)]">{buildSnippet(episode)}</p>
+                    <div className="mt-8 flex items-center justify-between text-sm text-[var(--ink-muted)]">
+                      <span className="font-medium">播客</span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500/80" />
+                        <span className="inline-flex h-3 w-1 rounded-full bg-emerald-400/70" />
+                        <span className="inline-flex h-4 w-1 rounded-full bg-emerald-300/70" />
                       </div>
                     </div>
-                  ))}
-                {!featuredLoading &&
-                  featured.latest.map((episode) => {
-                    const summaryId = episode.summary?.id;
-                    const href = summaryId
-                      ? `/episode/${episode.id}?summary_id=${summaryId}`
-                      : `/episode/${episode.id}`;
-                    return (
-                      <Link
-                        key={`latest-${episode.id}`}
-                        href={href}
-                        className="group flex gap-4 rounded-2xl border border-transparent p-2 transition hover:border-[var(--border)] hover:bg-[var(--bg-muted)]"
-                      >
-                        <div className="h-14 w-14 overflow-hidden rounded-2xl bg-[var(--bg-muted)]">
-                          {episode.cover_image ? (
-                            <div
-                              className="h-full w-full bg-cover bg-center"
-                              style={{ backgroundImage: `url(${episode.cover_image})` }}
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[var(--ink-muted)]">
-                              POD
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-semibold text-[var(--ink)] group-hover:text-black dark:group-hover:text-white">
-                              {episode.title ?? "未命名节目"}
-                            </p>
-                            <span className="text-xs text-[var(--ink-muted)]">
-                              {formatDate(episode.summary?.created_at)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-xs text-[var(--ink-muted)]">
-                            {buildSnippet(episode)}
-                          </p>
-                          <div className="mt-3 flex items-center gap-3 text-xs text-[var(--ink-muted)]">
-                            {formatDuration(episode.duration) && (
-                              <span>{formatDuration(episode.duration)}</span>
-                            )}
-                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">
-                              最新
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                {!featuredLoading && featured.latest.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--ink-muted)]">
-                    暂无最新摘要，请先生成节目摘要。
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">最热摘要</h3>
-                <span className="text-xs text-[var(--ink-muted)]">
-                  {featuredLoading ? "加载中..." : `${featured.hot.length} 条`}
-                </span>
-              </div>
-              <div className="mt-5 space-y-4">
-                {featuredLoading &&
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <div key={`hot-skeleton-${index}`} className="flex gap-4">
-                      <div className="h-14 w-14 rounded-2xl bg-[var(--bg-muted)]" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 w-2/3 rounded bg-[var(--bg-muted)]" />
-                        <div className="h-3 w-full rounded bg-[var(--bg-muted)]" />
-                      </div>
+                    <div className="pointer-events-none absolute bottom-4 right-6 text-[72px] font-semibold text-[rgba(0,0,0,0.05)]">
+                      {String(index + 1).padStart(2, "0")}
                     </div>
-                  ))}
-                {!featuredLoading &&
-                  featured.hot.map((episode, index) => {
-                    const summaryId = episode.summary?.id;
-                    const href = summaryId
-                      ? `/episode/${episode.id}?summary_id=${summaryId}`
-                      : `/episode/${episode.id}`;
-                    return (
-                      <Link
-                        key={`hot-${episode.id}`}
-                        href={href}
-                        className="group flex gap-4 rounded-2xl border border-transparent p-2 transition hover:border-[var(--border)] hover:bg-[var(--bg-muted)]"
-                      >
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-muted)] text-xs font-semibold">
-                          #{index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-semibold text-[var(--ink)] group-hover:text-black dark:group-hover:text-white">
-                              {episode.title ?? "未命名节目"}
-                            </p>
-                            <span className="text-xs text-[var(--ink-muted)]">
-                              {formatDate(episode.summary?.created_at)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-xs text-[var(--ink-muted)]">
-                            {buildSnippet(episode)}
-                          </p>
-                          <div className="mt-3 flex items-center gap-3 text-xs text-[var(--ink-muted)]">
-                            {formatDuration(episode.duration) && (
-                              <span>{formatDuration(episode.duration)}</span>
-                            )}
-                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">
-                              最热
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                {!featuredLoading && featured.hot.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--ink-muted)]">
-                    暂无最热摘要，请先生成节目摘要。
-                  </div>
-                )}
+                  </Link>
+                );
+              })}
+            {!featuredLoading && featuredList.length === 0 && (
+              <div className="rounded-3xl border border-dashed border-[var(--border)] p-6 text-sm text-[var(--ink-muted)]">
+                {activeTab === "liked"
+                  ? "暂时没有收藏的节目。"
+                  : "暂无摘要数据，请先生成节目摘要。"}
               </div>
-            </div>
+            )}
           </div>
 
           {featuredError && <div className="mt-4 text-xs text-red-500">{featuredError}</div>}
